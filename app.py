@@ -14,30 +14,34 @@ def fetch_data(symbol, req_type):
                 f"<tr><td><b>{key}</b></td><td>{value}</td></tr>"
                 for key, value in info.items()
             )
-            html_response = f"""
+            table_style = """
             <style>
-            table.info-table {{
+            .styled-table {
               border-collapse: collapse;
-              width: 100%;
-              font-family: sans-serif;
+              margin: 10px 0;
               font-size: 0.9em;
+              font-family: sans-serif;
+              width: 100%;
               box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            }}
-            table.info-table th, table.info-table td {{
+            }
+            .styled-table th, .styled-table td {
+              padding: 8px 10px;
               border: 1px solid #ddd;
-              padding: 8px;
-            }}
-            table.info-table tr:nth-child(even) {{ background-color: #f9f9f9; }}
-            table.info-table tr:hover {{ background-color: #f1f1f1; }}
+            }
+            .styled-table tbody tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
             </style>
-            <h2>Ticker Info for {symbol}</h2>
-            <table class="info-table">
+            """
+            html_response = f"""
+            {table_style}
+            <table class="styled-table">
               {rows}
             </table>
             """
             return html_response
 
-        # Daily data
+        # Daily block
         elif req_type.lower() == "daily":
             df = yf.download(symbol, period="1y", interval="1d").round(2)
             if df.empty:
@@ -46,6 +50,13 @@ def fetch_data(symbol, req_type):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
+            low_price = df["Low"].min()
+            high_price = df["High"].max()
+            price_min = low_price - (low_price / 5)
+            price_max = high_price
+            vol_max = df["Volume"].max()
+            vol_scale = (low_price / 5) / vol_max if vol_max > 0 else 1
+
             fig = go.Figure()
             fig.add_trace(go.Candlestick(
                 x=df.index,
@@ -57,48 +68,40 @@ def fetch_data(symbol, req_type):
             ))
             fig.add_trace(go.Bar(
                 x=df.index,
-                y=df["Volume"],
+                y=df["Volume"] * vol_scale,
                 name="Volume",
-                marker_color="lightblue",
-                yaxis="y2"
+                marker_color="lightblue"
             ))
             fig.update_layout(
-                #title=f"Daily Candlestick Chart for {symbol}",
                 xaxis_title="Date",
                 yaxis_title="Price",
-                yaxis2=dict(title="Volume", overlaying="y", side="right", showgrid=False),
+                yaxis=dict(range=[price_min, price_max]),
                 xaxis_rangeslider_visible=False,
                 height=600
             )
 
             chart_html = fig.to_html(full_html=False)
+            table_html = df.tail(30).to_html(classes="styled-table", border=0)
 
-            # Styled table
             table_style = """
             <style>
             .styled-table {
               border-collapse: collapse;
-              margin: 20px 0;
+              margin: 10px 0;
               font-size: 0.9em;
               font-family: sans-serif;
               width: 100%;
               box-shadow: 0 0 10px rgba(0,0,0,0.1);
             }
-            .styled-table thead tr {
-              background-color: #009879;
-              color: #ffffff;
-              text-align: left;
-            }
             .styled-table th, .styled-table td {
-              padding: 12px 15px;
+              padding: 8px 10px;
               border: 1px solid #ddd;
             }
             .styled-table tbody tr:nth-child(even) {
-              background-color: #f3f3f3;
+              background-color: #f9f9f9;
             }
             </style>
             """
-            table_html = df.tail(30).to_html(classes="styled-table", border=0)
 
             return f"""
             {chart_html}
@@ -107,7 +110,7 @@ def fetch_data(symbol, req_type):
             {table_html}
             """
 
-        # Intraday data
+        # Intraday block
         elif req_type.lower() == "intraday":
             df = yf.download(symbol, period="1d", interval="5m").round(2)
             if df.empty:
@@ -115,6 +118,13 @@ def fetch_data(symbol, req_type):
 
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
+
+            low_price = df["Low"].min()
+            high_price = df["High"].max()
+            price_min = low_price - (low_price / 5)
+            price_max = high_price
+            vol_max = df["Volume"].max()
+            vol_scale = (low_price / 5) / vol_max if vol_max > 0 else 1
 
             fig = go.Figure()
             fig.add_trace(go.Candlestick(
@@ -127,40 +137,33 @@ def fetch_data(symbol, req_type):
             ))
             fig.add_trace(go.Bar(
                 x=df.index,
-                y=df["Volume"],
+                y=df["Volume"] * vol_scale,
                 name="Volume",
-                marker_color="orange",
-                yaxis="y2"
+                marker_color="orange"
             ))
             fig.update_layout(
-                #title=f"Intraday Candlestick Chart for {symbol}",
                 xaxis_title="Time",
                 yaxis_title="Price",
-                yaxis2=dict(title="Volume", overlaying="y", side="right", showgrid=False),
+                yaxis=dict(range=[price_min, price_max]),
                 xaxis_rangeslider_visible=False,
                 height=600
             )
 
             chart_html = fig.to_html(full_html=False)
+            table_html = df.tail(50).to_html(classes="styled-table", border=0)
 
-            # Styled table
             table_style = """
             <style>
             .styled-table {
               border-collapse: collapse;
-              margin: 20px 0;
+              margin: 10px 0;
               font-size: 0.9em;
               font-family: sans-serif;
               width: 100%;
               box-shadow: 0 0 10px rgba(0,0,0,0.1);
             }
-            .styled-table thead tr {
-              background-color: #ff9800;
-              color: #ffffff;
-              text-align: left;
-            }
             .styled-table th, .styled-table td {
-              padding: 12px 15px;
+              padding: 8px 10px;
               border: 1px solid #ddd;
             }
             .styled-table tbody tr:nth-child(even) {
@@ -168,7 +171,6 @@ def fetch_data(symbol, req_type):
             }
             </style>
             """
-            table_html = df.tail(50).to_html(classes="styled-table", border=0)
 
             return f"""
             {chart_html}
