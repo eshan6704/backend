@@ -33,6 +33,19 @@ STYLE_BLOCK = """
 }
 .card h3 { margin:0 0 10px; font-size:1em; color:#333; }
 .card p { margin:0; font-size:0.9em; color:#555; word-wrap:break-word; }
+.big-box {
+  width:95%;
+  margin:20px auto;
+  padding:20px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  font-size:0.95em;
+  line-height:1.4em;
+  max-height:400px;
+  overflow-y:auto;
+}
 </style>
 """
 
@@ -40,16 +53,32 @@ def fetch_data(symbol, req_type):
     try:
         ticker = yf.Ticker(symbol)
 
-        # Info block as cards
+        # Info block as cards + big boxes
         if req_type.lower() == "info":
             info = ticker.info
             if not info:
                 return "<h1>No info available</h1>"
+
+            long_summary = info.pop("longBusinessSummary", None)
+            officers = info.pop("companyOfficers", None)
+
             cards = "".join(
                 f"<div class='card'><h3>{key}</h3><p>{value}</p></div>"
                 for key, value in info.items()
             )
-            return f"{STYLE_BLOCK}{cards}"
+
+            extra_sections = ""
+            if long_summary:
+                extra_sections += f"<div class='big-box'><h2>Business Summary</h2><p>{long_summary}</p></div>"
+            if officers:
+                officer_rows = "".join(
+                    f"<tr><td>{o.get('name','')}</td><td>{o.get('title','')}</td><td>{o.get('age','')}</td></tr>"
+                    for o in officers
+                )
+                officer_table = f"<table class='styled-table'><tr><th>Name</th><th>Title</th><th>Age</th></tr>{officer_rows}</table>"
+                extra_sections += f"<div class='big-box'><h2>Company Officers</h2>{officer_table}</div>"
+
+            return f"{STYLE_BLOCK}{cards}{extra_sections}"
 
         # Daily chart
         elif req_type.lower() == "daily":
@@ -166,7 +195,18 @@ iface = gr.Interface(
         gr.Textbox(label="Stock Symbol", value="PNB.NS"),
         gr.Dropdown(
             label="Request Type",
-            choices=["info","intraday","daily","qresult","result","balance","cashflow","dividend","split","other"],
+            choices=[
+                "info",
+                "intraday",
+                "daily",
+                "qresult",
+                "result",
+                "balance",
+                "cashflow",
+                "dividend",
+                "split",
+                "other"
+            ],
             value="info"
         )
     ],
