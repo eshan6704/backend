@@ -1,7 +1,7 @@
 import gradio as gr
 
 def fetch_data(symbol, req_type):
-    # Prefabricated HTML response using inputs
+    # Prefabricated HTML string response to demonstrate API
     html_response = f"""
     <html>
       <head><title>Stock Data for {symbol}</title></head>
