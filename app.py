@@ -14,28 +14,22 @@ def fetch_data(symbol, req_type):
                 for key, value in info.items()
             )
             html_response = f"""
-            <html>
-              <head><title>Stock Data for {symbol}</title></head>
-              <body>
-                <h1>Ticker Info for {symbol}</h1>
-                <table border="1" cellpadding="5" cellspacing="0">
-                  {rows}
-                </table>
-              </body>
-            </html>
+            <h1>Ticker Info for {symbol}</h1>
+            <table border="1" cellpadding="5" cellspacing="0">
+              {rows}
+            </table>
             """
+            return html_response, None
 
         elif req_type.lower() == "daily":
             df = yf.download(symbol, period="1y", interval="1d").round(2)
             if df.empty:
-                return f"<html><body><h1>No daily data for {symbol}</h1></body></html>"
+                return f"<h1>No daily data for {symbol}</h1>", None
 
-            # Flatten multi-level columns if present
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
             fig = go.Figure()
-
             fig.add_trace(go.Candlestick(
                 x=df.index,
                 open=df["Open"],
@@ -44,7 +38,6 @@ def fetch_data(symbol, req_type):
                 close=df["Close"],
                 name="Price"
             ))
-
             fig.add_trace(go.Bar(
                 x=df.index,
                 y=df["Volume"],
@@ -52,7 +45,6 @@ def fetch_data(symbol, req_type):
                 marker_color="lightblue",
                 yaxis="y2"
             ))
-
             fig.update_layout(
                 title=f"Daily Candlestick Chart for {symbol}",
                 xaxis_title="Date",
@@ -62,31 +54,30 @@ def fetch_data(symbol, req_type):
                 height=600
             )
 
-            chart_html = fig.to_html(full_html=False)
+            # Build HTML table
             table_html = df.tail(30).to_html(classes="dataframe", border=1)
 
+            # Also embed chart HTML if you want frontend injection
+            chart_html = fig.to_html(full_html=False)
+
             html_response = f"""
-            <html>
-              <head><title>Daily Data for {symbol}</title></head>
-              <body>
-                <h1>Daily Data for {symbol}</h1>
-                {chart_html}
-                <h2>Recent Daily Data (last 30 rows)</h2>
-                {table_html}
-              </body>
-            </html>
+            <h1>Daily Data for {symbol}</h1>
+            {chart_html}
+            <h2>Recent Daily Data (last 30 rows)</h2>
+            {table_html}
             """
+
+            return html_response, fig
 
         elif req_type.lower() == "intraday":
             df = yf.download(symbol, period="1d", interval="5m").round(2)
             if df.empty:
-                return f"<html><body><h1>No intraday data for {symbol}</h1></body></html>"
+                return f"<h1>No intraday data for {symbol}</h1>", None
 
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
             fig = go.Figure()
-
             fig.add_trace(go.Candlestick(
                 x=df.index,
                 open=df["Open"],
@@ -95,7 +86,6 @@ def fetch_data(symbol, req_type):
                 close=df["Close"],
                 name="Price"
             ))
-
             fig.add_trace(go.Bar(
                 x=df.index,
                 y=df["Volume"],
@@ -103,7 +93,6 @@ def fetch_data(symbol, req_type):
                 marker_color="orange",
                 yaxis="y2"
             ))
-
             fig.update_layout(
                 title=f"Intraday Candlestick Chart for {symbol}",
                 xaxis_title="Time",
@@ -113,47 +102,30 @@ def fetch_data(symbol, req_type):
                 height=600
             )
 
-            chart_html = fig.to_html(full_html=False)
             table_html = df.tail(50).to_html(classes="dataframe", border=1)
+            chart_html = fig.to_html(full_html=False)
 
             html_response = f"""
-            <html>
-              <head><title>Intraday Data for {symbol}</title></head>
-              <body>
-                <h1>Intraday Data for {symbol}</h1>
-                {chart_html}
-                <h2>Recent Intraday Data (last 50 rows)</h2>
-                {table_html}
-              </body>
-            </html>
+            <h1>Intraday Data for {symbol}</h1>
+            {chart_html}
+            <h2>Recent Intraday Data (last 50 rows)</h2>
+            {table_html}
             """
+
+            return html_response, fig
 
         else:
-            html_response = f"""
-            <html>
-              <head><title>Stock Data for {symbol}</title></head>
-              <body>
-                <h1>Data Request</h1>
-                <p>Symbol: {symbol}</p>
-                <p>Request Type: {req_type}</p>
-                <p>No special handler for this request type.</p>
-              </body>
-            </html>
-            """
+            return f"<h1>No handler for {req_type}</h1>", None
 
     except Exception as e:
-        html_response = f"<html><body><h1>Error</h1><p>{str(e)}</p></body></html>"
-
-    return html_response
+        return f"<h1>Error</h1><p>{str(e)}</p>", None
 
 
 iface = gr.Interface(
     fn=fetch_data,
-    inputs=[
-        gr.Textbox(label="Stock Symbol", value="PNB"),
-        gr.Textbox(label="Request Type", value="info")
-    ],
-    outputs=gr.HTML(label="Collected Stock Data"),
+    inputs=[gr.Textbox(label="Stock Symbol", value="PNB"),
+            gr.Textbox(label="Request Type", value="info")],
+    outputs=[gr.HTML(label="Full HTML Output"), gr.Plot(label="Chart")],
     title="Stock Data API (Full)",
     description="Fetch data from NSE and yfinance",
     api_name="fetch_data"
