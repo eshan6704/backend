@@ -50,8 +50,8 @@ def fetch_data(symbol, req_type):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
-            close_min = df["Close"].min()
-            close_max = df["Close"].max()
+            close_min = df["Low"].min()
+            close_max = df["High"].max()
             price_range = close_max - close_min
 
             # Reserve band for volume
@@ -124,8 +124,8 @@ def fetch_data(symbol, req_type):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
-            close_min = df["Close"].min()
-            close_max = df["Close"].max()
+            close_min = df["Low"].min()
+            close_max = df["High"].max()
             price_range = close_max - close_min
 
             # Reserve band for volume
