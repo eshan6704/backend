@@ -30,28 +30,29 @@ def fetch_data(symbol, req_type):
             if df.empty:
                 return f"<html><body><h1>No daily data for {symbol}</h1></body></html>"
 
+            # Flatten multi-level columns if present
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
             fig = go.Figure()
 
-            # Candlestick
             fig.add_trace(go.Candlestick(
                 x=df.index,
-                open=df['Open'],
-                high=df['High'],
-                low=df['Low'],
-                close=df['Close'],
+                open=df["Open"],
+                high=df["High"],
+                low=df["Low"],
+                close=df["Close"],
                 name="Price"
             ))
 
-            # Volume as bar chart
             fig.add_trace(go.Bar(
                 x=df.index,
-                y=df['Volume'],
+                y=df["Volume"],
                 name="Volume",
-                marker_color='lightblue',
+                marker_color="lightblue",
                 yaxis="y2"
             ))
 
-            # Layout with secondary y-axis
             fig.update_layout(
                 title=f"Daily Candlestick Chart for {symbol}",
                 xaxis_title="Date",
@@ -62,8 +63,6 @@ def fetch_data(symbol, req_type):
             )
 
             chart_html = fig.to_html(full_html=False)
-
-            # Data table
             table_html = df.tail(30).to_html(classes="dataframe", border=1)
 
             html_response = f"""
@@ -83,24 +82,25 @@ def fetch_data(symbol, req_type):
             if df.empty:
                 return f"<html><body><h1>No intraday data for {symbol}</h1></body></html>"
 
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
             fig = go.Figure()
 
-            # Candlestick
             fig.add_trace(go.Candlestick(
                 x=df.index,
-                open=df['Open'],
-                high=df['High'],
-                low=df['Low'],
-                close=df['Close'],
+                open=df["Open"],
+                high=df["High"],
+                low=df["Low"],
+                close=df["Close"],
                 name="Price"
             ))
 
-            # Volume
             fig.add_trace(go.Bar(
                 x=df.index,
-                y=df['Volume'],
+                y=df["Volume"],
                 name="Volume",
-                marker_color='orange',
+                marker_color="orange",
                 yaxis="y2"
             ))
 
