@@ -4,21 +4,18 @@ import numpy as np
 
 def patterns(df):
     """
-    Return a DataFrame of all CDL patterns with 0/1, keeping Date as index.
+    Return a DataFrame of all CDL patterns with 0/1,
+    preserving the original DataFrame index.
     """
     df = df.copy()
     required_cols = ['Open','High','Low','Close']
 
-    # Ensure all required columns exist
     for col in required_cols:
         if col not in df.columns:
             raise ValueError(f"Missing column: {col}")
 
-    # Use Date as index if present
-    if 'Date' in df.columns:
-        df.set_index('Date', inplace=True)
-
-    pattern_df = pd.DataFrame(index=df.index)
+    original_index = df.index  # preserve original index
+    pattern_df = pd.DataFrame(index=original_index)
 
     pattern_list = [f for f in dir(talib) if f.startswith("CDL")]
 
@@ -37,14 +34,11 @@ def patterns(df):
 
 def indicators(df):
     """
-    Return a DataFrame of all numeric TA-Lib indicators, keeping Date as index.
+    Return a DataFrame of numeric TA-Lib indicators,
+    preserving the original DataFrame index.
     """
     df_std = df.copy()
     df_std.columns = [c.lower() for c in df_std.columns]
-
-    # Use Date as index if present
-    if 'date' in df_std.columns:
-        df_std.set_index('date', inplace=True)
 
     ohlcv = {
         'open': df_std.get('open'),
@@ -60,6 +54,7 @@ def indicators(df):
     ]
 
     df_list = []
+    original_index = df.index  # preserve original index
 
     for name in indicator_list:
         func = getattr(talib, name)
@@ -72,10 +67,10 @@ def indicators(df):
             if isinstance(result, tuple):
                 for i, arr in enumerate(result):
                     col_name = f"{name}_{i}"
-                    temp_df = pd.DataFrame(arr, index=df_std.index, columns=[col_name])
+                    temp_df = pd.DataFrame(arr, index=original_index, columns=[col_name])
                     df_list.append(temp_df)
             else:
-                temp_df = pd.DataFrame(result, index=df_std.index, columns=[name])
+                temp_df = pd.DataFrame(result, index=original_index, columns=[name])
                 df_list.append(temp_df)
         except:
             continue
@@ -83,6 +78,6 @@ def indicators(df):
     if df_list:
         indicator_df = pd.concat(df_list, axis=1)
     else:
-        indicator_df = pd.DataFrame(index=df_std.index)
+        indicator_df = pd.DataFrame(index=original_index)
 
     return indicator_df
