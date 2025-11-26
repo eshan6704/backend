@@ -1,83 +1,60 @@
 # chart_builder.py
-import plotly.graph_objs as go
 import pandas as pd
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
 def build_chart(df, indicators=None):
     """
-    Build OHLC chart with volume and optional indicators.
-    
-    df : DataFrame with 'Open','High','Low','Close','Volume'
-    indicators : dict {name: Series or DataFrame} from indicater.py
+    df: OHLCV dataframe
+    indicators: dict of indicator_name -> DataFrame
+    Returns HTML string of chart
     """
-    if indicators is None:
-        indicators = {}
-
-    fig = go.Figure()
-
-    # --- Main OHLC Candlestick chart ---
-    fig.add_trace(go.Candlestick(
-        x=df.index,
-        open=df['Open'],
-        high=df['High'],
-        low=df['Low'],
-        close=df['Close'],
-        name='Price'
-    ))
-
-    # --- Overlay indicators on main chart (SMA, EMA) ---
-    overlay_indicators = ['SMA5','SMA20','SMA50','SMA200','EMA5','EMA20','EMA50','EMA200']
-    for ind in overlay_indicators:
-        if ind in indicators:
-            fig.add_trace(go.Scatter(
-                x=df.index,
-                y=indicators[ind],
-                mode='lines',
-                name=ind,
-                visible='legendonly'  # default off, toggle via legend
-            ))
-
-    # --- Volume subplot ---
-    fig.add_trace(go.Bar(
-        x=df.index,
-        y=df['Volume'],
-        name='Volume',
-        marker_color='lightblue',
-        yaxis='y2'
-    ))
-
-    # --- Subplot indicators (MACD, RSI, SuperTrend, etc.) ---
-    subplots = ['MACD','MACD_signal','MACD_hist','RSI','STOCH','ADX','CCI','OBV','SuperTrend']
-    for ind in subplots:
-        if ind in indicators:
-            fig.add_trace(go.Scatter(
-                x=df.index,
-                y=indicators[ind],
-                mode='lines',
-                name=ind,
-                visible='legendonly',
-                yaxis='y3'
-            ))
-
-    # --- Layout ---
-    fig.update_layout(
-        xaxis=dict(domain=[0,1]),
-        yaxis=dict(title='Price'),
-        yaxis2=dict(title='Volume', overlaying='y', side='right', showgrid=False, position=0.15),
-        yaxis3=dict(title='Indicators', anchor='free', overlaying='y', side='right', position=0.85),
-        legend=dict(orientation='h', y=-0.2),
-        margin=dict(l=50, r=50, t=50, b=100),
-        height=700,
-        template='plotly_white'
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        row_heights=[0.7, 0.3],
+        vertical_spacing=0.03,
+        subplot_titles=("Price & Indicators", "Volume / Subplots")
     )
 
-    # --- Add HTML + JS for toggle (legend already allows visibility control) ---
-    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+    # Main OHLC
+    fig.add_trace(go.Candlestick(
+        x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Price"
+    ), row=1, col=1)
 
-    # Add optional instructions
-    instructions = """
-    <div style="margin:10px 0;color:#555;">
-        <b>Instructions:</b> Click legend items to enable/disable indicators and overlays.
-    </div>
-    """
+    # Default volume subplot
+    fig.add_trace(go.Bar(
+        x=df.index, y=df['Volume'], name="Volume", marker_color='lightblue'
+    ), row=2, col=1)
 
-    return instructions + chart_html
+    # Overlay indicators
+    if indicators:
+        for name, ind_df in indicators.items():
+            if ind_df is None:
+                continue
+            if name.lower() in ['sma20','sma50','ema20','ema50','bb_upper','bb_middle','bb_lower','supertrend']:
+                # Overlay on main chart
+                for col in ind_df.columns:
+                    fig.add_trace(go.Scatter(
+                        x=ind_df.index, y=ind_df[col], mode='lines', name=col,
+                        visible='legendonly'  # hidden by default
+                    ), row=1, col=1)
+            else:
+                # Other indicators like MACD/RSI as subplots
+                for col in ind_df.columns:
+                    fig.add_trace(go.Scatter(
+                        x=ind_df.index, y=ind_df[col], mode='lines', name=col,
+                        visible='legendonly'
+                    ), row=2, col=1)
+
+    fig.update_layout(
+        xaxis_rangeslider_visible=False,
+        height=800,
+        template='plotly_dark',
+        legend=dict(orientation='h', y=1.02)
+    )
+
+    # Inject JS for toggling indicators (all by legend click)
+    html_chart = fig.to_html(full_html=False, include_plotlyjs='cdn')
+    return html_chart
