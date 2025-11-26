@@ -1,40 +1,32 @@
 # daily.py
-import pandas as pd           # <-- required
 import yfinance as yf
-from common import wrap_plotly_html, make_table
+import pandas as pd
 from indicater import calculate_indicators
 from chart_builder import build_chart
+from common import html_card, wrap_html
 
 def fetch_daily(symbol):
     """
-    Fetch daily OHLC + volume data for the past 1 year and render as HTML chart + table
-    with selectable indicators.
+    Fetch daily stock data, compute indicators, return full HTML
     """
-    yfsymbol = f"{symbol}.NS"
     try:
-        # Download daily data
-        df = yf.download(yfsymbol, period="1y", interval="1d").round(2)
-
-        if df.empty:
-            return f"<h1>No daily data for {symbol}</h1>"
-
-        # Handle multilevel columns (take 0th level)
+        df = yf.download(symbol, period='6mo', interval='1d', auto_adjust=True)
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+            df.columns = df.columns.get_level_values(0)  # flatten multi-level headers
 
-        # Format table HTML for last 30 rows
-        table_html = make_table(df.tail(30))
+        df.reset_index(inplace=True)
+        df.rename(columns={'Date':'Datetime'}, inplace=True)
+        df.set_index('Datetime', inplace=True)
+        if 'Volume' not in df.columns:
+            df['Volume'] = 1
 
         # Calculate indicators
         indicators = calculate_indicators(df)
 
-        # Build Plotly chart with main + volume subplot + subplots for indicators
-        chart_html = build_chart(df, indicators, symbol)
+        # Build chart
+        html_chart = build_chart(df, indicators=indicators)
 
-        # Wrap chart + table together
-        full_html = wrap_plotly_html(chart_html, table_html)
-
-        return full_html
-
+        return wrap_html(html_card(f"{symbol} Daily Chart", html_chart))
     except Exception as e:
-        return f"<h1>Error fetching daily data</h1><p>{str(e)}</p>"
+        import traceback
+        return wrap_html(html_card("Error", f"{e}<br><pre>{traceback.format_exc()}</pre>"))
