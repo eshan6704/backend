@@ -1,37 +1,42 @@
 # daily.py
 import pandas as pd
 import yfinance as yf
-from common import wrap_html, html_error, clean_df, make_table
+from common import format_number, format_large_number, html_card, make_table, wrap_html, clean_df
 from indicater import calculate_indicators
 from chart_builder import build_chart
 
 def fetch_daily(symbol):
     """
-    Fetches daily OHLCV data, calculates indicators, builds chart, 
-    and returns the complete HTML for Gradio UI.
+    Fetch real daily stock data from Yahoo Finance, calculate indicators,
+    build chart and table, and return full HTML.
     """
     try:
-        yfsymbol = symbol + ".NS"
-
-        # ---------------- Fetch daily data ----------------
-        df = yf.download(yfsymbol, period="6mo", interval="1d")
+        # 1. Fetch daily OHLCV data
+        yf_symbol = f"{symbol}.NS"  # NSE stocks; adjust for your exchange
+        df = yf.download(yf_symbol, period="1y", interval="1d", progress=False)
         if df.empty:
-            return html_error(f"No daily data found for {symbol}")
+            return f"<h3>No daily data found for {symbol}</h3>"
+
+        # 2. Handle multi-level columns (take 0th level)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
 
         df = clean_df(df)
 
-        # ---------------- Calculate indicators ----------------
+        # 3. Calculate indicators
         indicators = calculate_indicators(df)
 
-        # ---------------- Build chart ----------------
-        html_chart = build_chart(df, indicators)
+        # 4. Build Plotly chart with indicators
+        chart_html = build_chart(df, indicators, symbol=symbol)
 
-        # ---------------- Build table ----------------
+        # 5. Format table
         table_html = make_table(df)
 
-        # ---------------- Wrap into full HTML ----------------
-        html = wrap_html(f"{html_chart}<br>{table_html}", title=f"{symbol} Daily Chart")
-        return html
+        # 6. Wrap chart + table in card layout
+        content_html = html_card(f"{symbol} Daily Data", chart_html + table_html)
+
+        # 7. Return full HTML
+        return wrap_html(content_html, title=f"{symbol} Daily Data")
 
     except Exception as e:
-        return html_error(f"Error generating daily chart for {symbol}: {e}")
+        return f"<h3>Error fetching daily data for {symbol}:</h3><pre>{e}</pre>"
