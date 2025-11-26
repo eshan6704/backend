@@ -1,79 +1,91 @@
 # chart_builder.py
 import plotly.graph_objs as go
-from indicator import (
-    calc_macd, calc_rsi, calc_supertrend,
-    calc_stochastic, calc_keltner, calc_zigzag,
-    calc_swings
-)
+import pandas as pd
+from indicator import macd, rsi, supertrend, keltner_channel, zigzag, swing_high_low, stockstick
 
-def build_chart(df):
+# ============================================================
+#                 CHART BUILDER
+# ============================================================
+
+def build_chart(df, indicators=None, volume=True):
+    """
+    Build Plotly chart with multiple indicators.
+    df: DataFrame with OHLCV columns
+    indicators: list of indicator names to apply (str)
+    volume: bool, add volume bars
+    """
+    indicators = indicators or []
+
+    # Apply stockstick color
+    df = stockstick(df)
+
     fig = go.Figure()
 
-    # =============================
-    # MAIN PRICE PANEL
-    # =============================
+    # Candlestick trace
     fig.add_trace(go.Candlestick(
         x=df.index,
-        open=df["Open"], high=df["High"],
-        low=df["Low"], close=df["Close"],
-        name="Price", yaxis="y"
+        open=df['Open'],
+        high=df['High'],
+        low=df['Low'],
+        close=df['Close'],
+        name="Price",
+        increasing_line_color='green',
+        decreasing_line_color='red'
     ))
 
-    # Volume
-    fig.add_trace(go.Bar(
-        x=df.index, y=df["Volume"], name="Volume", yaxis="y2", opacity=0.3
-    ))
+    # Volume trace
+    if volume and 'Volume' in df.columns:
+        vol_scale = (df['Close'].max() - df['Close'].min()) / df['Volume'].max()
+        fig.add_trace(go.Bar(
+            x=df.index,
+            y=df['Volume']*vol_scale + df['Close'].min(),
+            marker_color='lightblue',
+            name='Volume',
+            yaxis='y2',
+            customdata=df['Volume'],
+            hovertemplate="Volume: %{customdata}<extra></extra>"
+        ))
 
-    # =============================
-    # INDICATORS
-    # =============================
-    rsi = calc_rsi(df)
-    macd = calc_macd(df)
-    st = calc_supertrend(df)
-    stoch = calc_stochastic(df)
-    kc = calc_keltner(df)
-    zig = calc_zigzag(df)
-    sw = calc_swings(df)
+    # Indicators
+    for ind in indicators:
+        if ind.lower() == 'macd':
+            df = macd(df)
+            fig.add_trace(go.Scatter(x=df.index, y=df['MACD'], name='MACD', line=dict(color='orange')))
+            fig.add_trace(go.Scatter(x=df.index, y=df['MACD_Signal'], name='MACD Signal', line=dict(color='blue', dash='dot')))
+        elif ind.lower() == 'rsi':
+            df = rsi(df)
+            fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], name='RSI', line=dict(color='purple')))
+        elif ind.lower() == 'supertrend':
+            df = supertrend(df)
+            # color by trend
+            fig.add_trace(go.Scatter(
+                x=df.index,
+                y=df['Close'],
+                mode='lines',
+                line=dict(color='green'),
+                name='SuperTrend Up',
+                visible='legendonly'
+            ))
+        elif ind.lower() == 'keltner':
+            df = keltner_channel(df)
+            fig.add_trace(go.Scatter(x=df.index, y=df['KC_Upper'], line=dict(color='red', dash='dot'), name='KC Upper'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['KC_Lower'], line=dict(color='green', dash='dot'), name='KC Lower'))
+        elif ind.lower() == 'zigzag':
+            df = zigzag(df)
+            fig.add_trace(go.Scatter(x=df.index, y=df['ZigZag'], line=dict(color='black'), name='ZigZag'))
+        elif ind.lower() == 'swing':
+            df = swing_high_low(df)
+            fig.add_trace(go.Scatter(x=df.index, y=df['Swing_High'], mode='markers', marker=dict(color='red', symbol='triangle-up'), name='Swing High'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['Swing_Low'], mode='markers', marker=dict(color='green', symbol='triangle-down'), name='Swing Low'))
 
-    # RSI Panel
-    fig.add_trace(go.Scatter(x=df.index, y=rsi["RSI"], name="RSI", yaxis="y3"))
-
-    # MACD Panel
-    fig.add_trace(go.Scatter(x=df.index, y=macd["MACD"], name="MACD", yaxis="y4"))
-    fig.add_trace(go.Scatter(x=df.index, y=macd["Signal"], name="Signal", yaxis="y4"))
-    fig.add_trace(go.Bar(x=df.index, y=macd["Histogram"], name="Hist", yaxis="y4"))
-
-    # Supertrend
-    fig.add_trace(go.Scatter(x=df.index, y=st["Supertrend"], name="Supertrend", yaxis="y"))
-
-    # Stoch
-    fig.add_trace(go.Scatter(x=df.index, y=stoch["STOCH_K"], name="STOCH_K", yaxis="y5"))
-    fig.add_trace(go.Scatter(x=df.index, y=stoch["STOCH_D"], name="STOCH_D", yaxis="y5"))
-
-    # Keltner
-    fig.add_trace(go.Scatter(x=df.index, y=kc["KC_UP"], name="KC UP", yaxis="y"))
-    fig.add_trace(go.Scatter(x=df.index, y=kc["KC_MID"], name="KC MID", yaxis="y"))
-    fig.add_trace(go.Scatter(x=df.index, y=kc["KC_LOW"], name="KC LOW", yaxis="y"))
-
-    # ZigZag
-    fig.add_trace(go.Scatter(x=df.index, y=zig["ZIGZAG"], name="ZIGZAG", yaxis="y"))
-
-    # Swings
-    fig.add_trace(go.Scatter(x=df.index, y=sw["SWING_HIGH"], name="Swing High", yaxis="y"))
-    fig.add_trace(go.Scatter(x=df.index, y=sw["SWING_LOW"], name="Swing Low", yaxis="y"))
-
-    # =============================
-    # LAYOUT
-    # =============================
+    # Layout adjustments
     fig.update_layout(
-        height=1200,
-        xaxis=dict(domain=[0, 1], rangeslider=dict(visible=False)),
-        yaxis=dict(domain=[0.55, 1]),       # Price
-        yaxis2=dict(domain=[0.45, 0.55]),   # Volume
-        yaxis3=dict(domain=[0.30, 0.45]),   # RSI
-        yaxis4=dict(domain=[0.15, 0.30]),   # MACD
-        yaxis5=dict(domain=[0.00, 0.15]),   # Stochastic
-        showlegend=True
+        xaxis_rangeslider_visible=False,
+        height=600,
+        yaxis=dict(title='Price'),
+        yaxis2=dict(title='Volume', overlaying='y', side='right', showgrid=False, range=[df['Close'].min(), df['Close'].max()]),
+        margin=dict(l=50, r=50, t=50, b=50)
     )
 
+    # Return HTML div
     return fig.to_html(full_html=False)
