@@ -2,3 +2,4 @@ gradio
 yfinance
 plotly
 pandas
+TA-Lib
