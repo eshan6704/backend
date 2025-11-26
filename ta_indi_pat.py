@@ -5,7 +5,7 @@ import numpy as np
 def patterns(df):
     """
     Return a DataFrame of all CDL patterns with 0/1,
-    preserving the original DataFrame index.
+    adding the original 'Date' column as the first column.
     """
     df = df.copy()
     required_cols = ['Open','High','Low','Close']
@@ -14,9 +14,7 @@ def patterns(df):
         if col not in df.columns:
             raise ValueError(f"Missing column: {col}")
 
-    original_index = df.index  # preserve original index
-    pattern_df = pd.DataFrame(index=original_index)
-
+    pattern_df = pd.DataFrame(index=df.index)
     pattern_list = [f for f in dir(talib) if f.startswith("CDL")]
 
     for pattern in pattern_list:
@@ -29,13 +27,16 @@ def patterns(df):
         )
         pattern_df[pattern] = (result != 0).astype(int)
 
+    # Add original Date as first column
+    pattern_df.insert(0, 'Date', df['Date'].values)
+
     return pattern_df
 
 
 def indicators(df):
     """
     Return a DataFrame of numeric TA-Lib indicators,
-    preserving the original DataFrame index.
+    adding the original 'Date' column as the first column.
     """
     df_std = df.copy()
     df_std.columns = [c.lower() for c in df_std.columns]
@@ -54,7 +55,7 @@ def indicators(df):
     ]
 
     df_list = []
-    original_index = df.index  # preserve original index
+    original_index = df.index
 
     for name in indicator_list:
         func = getattr(talib, name)
@@ -79,5 +80,8 @@ def indicators(df):
         indicator_df = pd.concat(df_list, axis=1)
     else:
         indicator_df = pd.DataFrame(index=original_index)
+
+    # Add original Date as first column
+    indicator_df.insert(0, 'Date', df['Date'].values)
 
     return indicator_df
