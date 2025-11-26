@@ -1,82 +1,99 @@
 # qresult.py
 import yfinance as yf
 import pandas as pd
-import pandas.api.types as ptypes
-import datetime
-
-# --- CSS for this module ---
-STYLE_BLOCK = """
-<style>
-.styled-table {
-  border-collapse: collapse;
-  margin: 10px 0;
-  font-size: 0.9em;
-  font-family: sans-serif;
-  width: 100%;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-.styled-table th, .styled-table td {
-  padding: 8px 10px;
-  border: 1px solid #ddd;
-}
-.styled-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-.card {
-  width: 95%;
-  margin: 10px auto;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fafafa;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-.card h2 {
-  margin-top:0;
-}
-</style>
-"""
-
-def format_large_number(num):
-    if not isinstance(num, (int, float)):
-        return num
-    sign = '-' if num < 0 else ''
-    num = abs(float(num))
-    if num >= 1_000_000_000_000:
-        return f"{sign}{num / 1_000_000_000_000:.2f} LCr"
-    elif num >= 10_000_000:
-        return f"{sign}{num / 10_000_000:.2f} Cr"
-    elif num >= 100_000:
-        return f"{sign}{num / 100_000:.2f} Lac"
-    else:
-        return f"{sign}{num:,.0f}"
+from common import (
+    format_large_number,
+    format_timestamp_to_date,
+    format_number,
+    wrap_html,
+    STYLE_BLOCK
+)
 
 def fetch_qresult(symbol):
     yfsymbol = f"{symbol}.NS"
+
     try:
         ticker = yf.Ticker(yfsymbol)
-        df = ticker.quarterly_financials
-        if df.empty:
-            content_html = f"<h1>No quarterly results available for {symbol}</h1>"
-        else:
-            # Format numeric columns
-            for col in df.columns:
-                if ptypes.is_numeric_dtype(df[col]):
-                    df[col] = df[col].apply(format_large_number)
-            content_html = f"<div class='card'><h2>Quarterly Results</h2>{df.to_html(classes='styled-table', border=0)}</div>"
-    except Exception as e:
-        content_html = f"<h1>Error</h1><p>{str(e)}</p>"
 
-    full_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Quarterly Results for {symbol}</title>
-    {STYLE_BLOCK}
-</head>
-<body>
-    {content_html}
-</body>
-</html>
-"""
-    return full_html
+        # Fetch data
+        q = ticker.quarterly_financials
+        y = ticker.financials
+        bs = ticker.balance_sheet
+        cf = ticker.cashflow
+
+        if q is None or q.empty:
+            return wrap_html(
+                f"Quarterly Results: {symbol}",
+                "<h2>No quarterly data available</h2>"
+            )
+
+        # Transpose for nicer table format
+        q_t = q.T
+        y_t = y.T if y is not None else None
+        bs_t = bs.T if bs is not None else None
+        cf_t = cf.T if cf is not None else None
+
+        # Format numeric values
+        def format_df(df):
+            df_formatted = df.copy()
+            for col in df_formatted.columns:
+                df_formatted[col] = df_formatted[col].apply(
+                    lambda x: format_large_number(x) if isinstance(x, (int, float)) else x
+                )
+            # Fix date index
+            df_formatted.index = [
+                format_timestamp_to_date(i.timestamp()) if hasattr(i, "timestamp") else str(i)
+                for i in df_formatted.index
+            ]
+            return df_formatted
+
+        q_html = format_df(q_t).to_html(classes="styled-table", border=0)
+
+        y_html = ""
+        if y_t is not None:
+            y_html = format_df(y_t).to_html(classes="styled-table", border=0)
+
+        bs_html = ""
+        if bs_t is not None:
+            bs_html = format_df(bs_t).to_html(classes="styled-table", border=0)
+
+        cf_html = ""
+        if cf_t is not None:
+            cf_html = format_df(cf_t).to_html(classes="styled-table", border=0)
+
+        # Build sections
+        content = f"""
+        <div class='big-box'>
+            <h2>Quarterly Results</h2>
+            {q_html}
+        </div>
+        """
+
+        if y_html:
+            content += f"""
+            <div class='big-box'>
+                <h2>Annual Results</h2>
+                {y_html}
+            </div>
+            """
+
+        if bs_html:
+            content += f"""
+            <div class='big-box'>
+                <h2>Balance Sheet</h2>
+                {bs_html}
+            </div>
+            """
+
+        if cf_html:
+            content += f"""
+            <div class='big-box'>
+                <h2>Cash Flow</h2>
+                {cf_html}
+            </div>
+            """
+
+        return wrap_html(f"Quarterly Results — {symbol}", content)
+
+    except Exception as e:
+        return wrap_html("Error", f"<h3>Error fetching results</h3><p>{str(e)}</p>")
