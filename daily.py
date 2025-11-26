@@ -11,7 +11,7 @@ def fetch_daily(symbol, max_rows=200):
     """
     try:
         # --- Fetch historical data ---
-        df = yf.download(symbol + ".NS", period="6mo", interval="1d").round(2)
+        df = yf.download(symbol + ".NS", period="1y", interval="1d").round(2)
         
         if isinstance(combined_df.columns, pd.MultiIndex):
             combined_df.columns = combined_df.columns.get_level_values(0)
