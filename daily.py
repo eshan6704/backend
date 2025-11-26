@@ -1,6 +1,6 @@
 # daily.py
+import pandas as pd           # <-- required
 import yfinance as yf
-import pandas as pd
 from common import wrap_plotly_html, make_table
 from indicater import calculate_indicators
 from chart_builder import build_chart
@@ -8,7 +8,7 @@ from chart_builder import build_chart
 def fetch_daily(symbol):
     """
     Fetch daily OHLC + volume data for the past 1 year and render as HTML chart + table
-    with selectable indicators (via script in chart_builder).
+    with selectable indicators.
     """
     yfsymbol = f"{symbol}.NS"
     try:
