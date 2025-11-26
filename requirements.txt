@@ -1,6 +1,6 @@
 gradio
 yfinance
-plotly
 pandas
+numpy
+plotly
 TA-Lib
-Numpy
