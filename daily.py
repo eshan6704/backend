@@ -1,11 +1,13 @@
 # daily.py
 import yfinance as yf
 import pandas as pd
-from indicater import calculate_indicators
-from chart_builder import build_chart
-from common import html_card, make_table, wrap_html
+from ta_indi_pat import patterns, indicators
+from common import html_card, wrap_html
 
-def fetch_daily(symbol):
+def fetch_daily_full_table(symbol):
+    """
+    Fetch daily OHLCV data, calculate indicators + patterns, return as HTML table.
+    """
     try:
         # --- Fetch historical data ---
         df = yf.download(symbol + ".NS", period="6mo", interval="1d")
@@ -13,34 +15,19 @@ def fetch_daily(symbol):
             return html_card("Error", f"No daily data found for {symbol}")
         df.reset_index(inplace=True)
 
-        # --- Calculate indicators ---
-        indicators = calculate_indicators(df)
+        # --- Calculate indicators and patterns ---
+        indicator_df = indicators(df)
+        pattern_df = patterns(df)
 
-        # --- Build chart with injected checkbox script ---
-        chart_html = build_chart(df, indicators)
+        # --- Combine OHLCV + indicators + patterns ---
+        combined_df = pd.concat([df, indicator_df, pattern_df], axis=1)
 
-        # --- Format table ---
-        table_html = make_table(df)
+        # --- Convert to HTML table ---
+        table_html = combined_df.to_html(classes="table table-striped table-bordered", border=0, index=False)
 
-        # --- Combine everything in HTML ---
+        # --- Wrap in card and full HTML ---
         content = f"""
         <h2>{symbol} - Daily Data</h2>
-
-        <div>
-            <b>Select Indicators to Display:</b><br>
-            <input type="checkbox" class="indicator-toggle" data-trace="1" checked> SMA20
-            <input type="checkbox" class="indicator-toggle" data-trace="2" checked> SMA50
-            <input type="checkbox" class="indicator-toggle" data-trace="3"> EMA20
-            <input type="checkbox" class="indicator-toggle" data-trace="4"> EMA50
-            <input type="checkbox" class="indicator-toggle" data-trace="5"> MACD
-            <input type="checkbox" class="indicator-toggle" data-trace="6"> RSI
-            <input type="checkbox" class="indicator-toggle" data-trace="7"> Stochastic
-            <button onclick="applyIndicators()">Apply</button>
-        </div>
-        <br>
-
-        {chart_html}
-        <br>
         {html_card("Data Table", table_html)}
         """
 
