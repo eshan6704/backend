@@ -1,82 +1,83 @@
 # chart_builder.py
+import plotly.graph_objs as go
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-def build_chart(df, indicators, symbol="Stock"):
+def build_chart(df, indicators=None):
     """
-    Build Plotly chart with main OHLC + optional subplots for indicators.
-    Inject JS to toggle each indicator dynamically.
+    Build OHLC chart with volume and optional indicators.
+    
+    df : DataFrame with 'Open','High','Low','Close','Volume'
+    indicators : dict {name: Series or DataFrame} from indicater.py
     """
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.7, 0.3],
-        vertical_spacing=0.05,
-        subplot_titles=(f"{symbol} Price", "Indicators")
-    )
+    if indicators is None:
+        indicators = {}
 
-    # --- Main chart: OHLC + MA ---
+    fig = go.Figure()
+
+    # --- Main OHLC Candlestick chart ---
     fig.add_trace(go.Candlestick(
-        x=df.index, open=df['Open'], high=df['High'],
-        low=df['Low'], close=df['Close'], name='OHLC'
-    ), row=1, col=1)
+        x=df.index,
+        open=df['Open'],
+        high=df['High'],
+        low=df['Low'],
+        close=df['Close'],
+        name='Price'
+    ))
 
-    # MA on main chart
-    for ma in ['SMA20', 'SMA50']:
-        if ma in indicators:
+    # --- Overlay indicators on main chart (SMA, EMA) ---
+    overlay_indicators = ['SMA5','SMA20','SMA50','SMA200','EMA5','EMA20','EMA50','EMA200']
+    for ind in overlay_indicators:
+        if ind in indicators:
             fig.add_trace(go.Scatter(
-                x=df.index, y=indicators[ma],
-                mode='lines', name=ma
-            ), row=1, col=1)
+                x=df.index,
+                y=indicators[ind],
+                mode='lines',
+                name=ind,
+                visible='legendonly'  # default off, toggle via legend
+            ))
 
-    # --- Subplot for MACD/RSI/SuperTrend ---
-    indicator_row = 2
-    for ind_name in ['MACD', 'RSI', 'SuperTrend']:
-        if ind_name in indicators:
-            data = indicators[ind_name]
-            if isinstance(data, pd.DataFrame):
-                for col in data.columns:
-                    fig.add_trace(go.Scatter(
-                        x=df.index, y=data[col],
-                        mode='lines', name=f"{ind_name}-{col}",
-                        visible=False  # Start hidden, toggle later
-                    ), row=indicator_row, col=1)
-            else:
-                fig.add_trace(go.Scatter(
-                    x=df.index, y=data,
-                    mode='lines', name=ind_name,
-                    visible=False
-                ), row=indicator_row, col=1)
+    # --- Volume subplot ---
+    fig.add_trace(go.Bar(
+        x=df.index,
+        y=df['Volume'],
+        name='Volume',
+        marker_color='lightblue',
+        yaxis='y2'
+    ))
+
+    # --- Subplot indicators (MACD, RSI, SuperTrend, etc.) ---
+    subplots = ['MACD','MACD_signal','MACD_hist','RSI','STOCH','ADX','CCI','OBV','SuperTrend']
+    for ind in subplots:
+        if ind in indicators:
+            fig.add_trace(go.Scatter(
+                x=df.index,
+                y=indicators[ind],
+                mode='lines',
+                name=ind,
+                visible='legendonly',
+                yaxis='y3'
+            ))
 
     # --- Layout ---
     fig.update_layout(
+        xaxis=dict(domain=[0,1]),
+        yaxis=dict(title='Price'),
+        yaxis2=dict(title='Volume', overlaying='y', side='right', showgrid=False, position=0.15),
+        yaxis3=dict(title='Indicators', anchor='free', overlaying='y', side='right', position=0.85),
+        legend=dict(orientation='h', y=-0.2),
+        margin=dict(l=50, r=50, t=50, b=100),
         height=700,
-        showlegend=True,
-        title=f"{symbol} Chart with Indicators",
-        xaxis_rangeslider_visible=False
+        template='plotly_white'
     )
 
-    # --- Inject JS for toggle buttons ---
-    toggle_script = """
-    <script>
-    function toggleIndicator(indName) {
-        var gd = document.querySelectorAll('.js-plotly-plot')[0];
-        var update = {visible: []};
-        gd.data.forEach(function(trace) {
-            if(trace.name.includes(indName)) {
-                trace.visible = !trace.visible;
-            }
-        });
-        Plotly.redraw(gd);
-    }
-    </script>
-    <div style="margin-top:10px;">
-        <button onclick="toggleIndicator('MACD')">Toggle MACD</button>
-        <button onclick="toggleIndicator('RSI')">Toggle RSI</button>
-        <button onclick="toggleIndicator('SuperTrend')">Toggle SuperTrend</button>
+    # --- Add HTML + JS for toggle (legend already allows visibility control) ---
+    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    # Add optional instructions
+    instructions = """
+    <div style="margin:10px 0;color:#555;">
+        <b>Instructions:</b> Click legend items to enable/disable indicators and overlays.
     </div>
     """
 
-    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn') + toggle_script
-    return chart_html
+    return instructions + chart_html
