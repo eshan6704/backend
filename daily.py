@@ -4,13 +4,14 @@ import pandas as pd
 from ta_indi_pat import patterns, indicators
 from common import html_card, wrap_html
 
-def fetch_daily_full_table(symbol):
+def fetch_daily(symbol):
     """
     Fetch daily OHLCV data, calculate indicators + patterns, return as HTML table.
     """
     try:
         # --- Fetch historical data ---
-        df = yf.download(symbol + ".NS", period="6mo", interval="1d")
+        df = yf.download(symbol + ".NS", period="1y", interval="1d").round(2)
+        df.columns=df.co
         if df.empty:
             return html_card("Error", f"No daily data found for {symbol}")
         df.reset_index(inplace=True)
