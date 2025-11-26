@@ -1,5 +1,6 @@
 # daily.py
 import yfinance as yf
+import pandas as pd
 from common import wrap_html, make_table
 from chart_builder import build_chart
 
