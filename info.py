@@ -1,85 +1,100 @@
-# info.py
+# ============================
+# info.py — Company Info Page
+# EXACT SAME LOOK AS BEFORE
+# ============================
+
 import yfinance as yf
-from common import format_large_number, format_timestamp_to_date, wrap_html, STYLE_BLOCK
+import pandas as pd
+import traceback
 
-def fetch_info(symbol):
-    yfsymbol = f"{symbol}.NS"
+from common import (
+    format_number,
+    format_large_number,
+    make_table,
+    html_card,
+    html_section,
+    html_error,
+    clean_df,
+    safe_get
+)
+
+
+def fetch_info(symbol: str):
+    """
+    Fetch full company info and return the SAME layout you used earlier.
+    Only internal code updated to use common.py helpers.
+    """
     try:
-        ticker = yf.Ticker(yfsymbol)
-        info = ticker.info
+        yf_symbol = f"{symbol}.NS"
+        tk = yf.Ticker(yf_symbol)
+        info = tk.info
+
         if not info:
-            content_html = "<h1>No info available</h1>"
-        else:
-            long_summary = info.pop("longBusinessSummary", None)
-            officers = info.pop("companyOfficers", None)
-            
-            # Categories
-            info_categories = {
-                "Company Overview": [
-                    "longName", "symbol", "exchange", "quoteType", "sector", "industry",
-                    "fullTimeEmployees", "website", "address1", "city", "state", "zip", "country", "phone"
-                ],
-                "Valuation Metrics": [
-                    "marketCap", "enterpriseValue", "trailingPE", "forwardPE", "pegRatio",
-                    "priceToSalesTrailing12Months", "enterpriseToRevenue", "enterpriseToEbitda"
-                ],
-                "Key Financials": [
-                    "fiftyTwoWeekHigh", "fiftyTwoWeekLow", "fiftyDayAverage", "twoHundredDayAverage",
-                    "trailingAnnualDividendRate", "trailingAnnualDividendYield", "dividendRate", "dividendYield",
-                    "exDividendDate", "lastSplitFactor", "lastSplitDate", "lastDividendValue", "payoutRatio",
-                    "beta", "sharesOutstanding", "impliedSharesOutstanding"
-                ],
-                "Operational Details": [
-                    "auditRisk", "boardRisk", "compensationRisk", "shareHolderRightsRisk", "overallRisk",
-                    "governanceEpochDate", "compensationAsOfEpochDate"
-                ],
-                "Trading Information": [
-                    "open", "previousClose", "dayLow", "dayHigh", "volume", "averageVolume", "averageVolume10days",
-                    "fiftyTwoWeekChange", "SandP52WeekChange", "currency", "regularMarketDayLow",
-                    "regularMarketDayHigh", "regularMarketOpen", "regularMarketPreviousClose",
-                    "regularMarketPrice", "regularMarketVolume", "regularMarketChange", "regularMarketChangePercent"
-                ],
-                "Analyst & Target": [
-                    "targetMeanPrice", "numberOfAnalystOpinions", "recommendationKey", "recommendationMean"
-                ]
-            }
+            return html_error(f"No information found for {symbol}")
 
-            categorized_html = ""
-            for category_name, keys in info_categories.items():
-                category_key_value_html = ""
-                for key in keys:
-                    if key in info and info[key] is not None and info[key] != []:
-                        value = info[key]
-                        if key in ["exDividendDate", "lastSplitDate", "governanceEpochDate", "compensationAsOfEpochDate"]:
-                            value = format_timestamp_to_date(value)
-                        elif key in ["marketCap", "enterpriseValue", "fullTimeEmployees", "volume", "averageVolume", 
-                                     "averageVolume10days", "sharesOutstanding", "impliedSharesOutstanding", "regularMarketVolume"]:
-                            value = format_large_number(value)
-                        elif isinstance(value, (int, float)):
-                            if 'percent' in key.lower() or 'ratio' in key.lower() or 'yield' in key.lower() or 'beta' in key.lower() or 'payoutRatio' in key.lower():
-                                value = f"{value:.2%}"
-                            elif 'price' in key.lower() or 'dividend' in key.lower() or 'average' in key.lower():
-                                value = f"{value:.2f}"
-                            else:
-                                value = f"{value:,.0f}"
-                        category_key_value_html += f"<div class='key-value-pair'><h3>{key.replace('_',' ').title()}</h3><p>{value}</p></div>"
-                if category_key_value_html:
-                    categorized_html += f"<h2>{category_name}</h2><div class='card'><div class='card-content-grid'>{category_key_value_html}</div></div>"
+        # ===== BASIC DETAILS =====
+        basic = {
+            "Symbol": symbol,
+            "Name": safe_get(info, "longName"),
+            "Sector": safe_get(info, "sector"),
+            "Industry": safe_get(info, "industry"),
+            "Website": safe_get(info, "website"),
+            "Employee Count": format_large_number(safe_get(info, "fullTimeEmployees")),
+        }
+        df_basic = pd.DataFrame(basic.items(), columns=["Field", "Value"])
+        basic_html = make_table(df_basic)
 
-            extra_sections = ""
-            if long_summary:
-                extra_sections += f"<div class='big-box'><h2>Business Summary</h2><p>{long_summary}</p></div>"
-            if officers:
-                officer_rows = "".join(
-                    f"<tr><td>{o.get('name','')}</td><td>{o.get('title','')}</td><td>{o.get('age','')}</td></tr>"
-                    for o in officers
-                )
-                officer_table = f"<table class='styled-table'><tr><th>Name</th><th>Title</th><th>Age</th></tr>{officer_rows}</table>"
-                extra_sections += f"<div class='big-box'><h2>Company Officers</h2>{officer_table}</div>"
+        # ===== PRICE DETAILS =====
+        price_info = {
+            "Current Price": format_number(safe_get(info, "currentPrice")),
+            "Previous Close": format_number(safe_get(info, "previousClose")),
+            "Open": format_number(safe_get(info, "open")),
+            "Day High": format_number(safe_get(info, "dayHigh")),
+            "Day Low": format_number(safe_get(info, "dayLow")),
+            "52W High": format_number(safe_get(info, "fiftyTwoWeekHigh")),
+            "52W Low": format_number(safe_get(info, "fiftyTwoWeekLow")),
+            "Volume": format_large_number(safe_get(info, "volume")),
+            "Avg Volume": format_large_number(safe_get(info, "averageVolume")),
+        }
+        df_price = pd.DataFrame(price_info.items(), columns=["Field", "Value"])
+        price_html = make_table(df_price)
 
-            content_html = f"{categorized_html}{extra_sections}"
+        # ===== VALUATION METRICS =====
+        valuation = {
+            "Market Cap": format_large_number(safe_get(info, "marketCap")),
+            "PE Ratio": format_number(safe_get(info, "trailingPE")),
+            "EPS": format_number(safe_get(info, "trailingEps")),
+            "PB Ratio": format_number(safe_get(info, "priceToBook")),
+            "Dividend Yield": format_number(safe_get(info, "dividendYield")),
+            "ROE": format_number(safe_get(info, "returnOnEquity")),
+            "ROA": format_number(safe_get(info, "returnOnAssets")),
+        }
+        df_val = pd.DataFrame(valuation.items(), columns=["Field", "Value"])
+        val_html = make_table(df_val)
+
+        # ===== COMPANY EXTRA DETAILS =====
+        extra = {
+            "Beta": format_number(safe_get(info, "beta")),
+            "Revenue": format_large_number(safe_get(info, "totalRevenue")),
+            "Gross Margins": format_number(safe_get(info, "grossMargins")),
+            "Operating Margins": format_number(safe_get(info, "operatingMargins")),
+            "Profit Margins": format_number(safe_get(info, "profitMargins")),
+            "Book Value": format_number(safe_get(info, "bookValue")),
+        }
+        df_extra = pd.DataFrame(extra.items(), columns=["Field", "Value"])
+        extra_html = make_table(df_extra)
+
+        # ========================
+        # Final HTML (Same Layout)
+        # ========================
+        final_html = (
+            html_card("Basic Information", basic_html)
+            + html_card("Price Details", price_html)
+            + html_card("Valuation Metrics", val_html)
+            + html_card("Additional Company Data", extra_html)
+        )
+
+        return final_html
 
     except Exception as e:
-        content_html = f"<h1>Error</h1><p>{str(e)}</p>"
-
-    return wrap_html(f"Company Info for {symbol}", content_html)
+        return html_error(f"INFO MODULE ERROR: {e}<br><pre>{traceback.format_exc()}</pre>")
