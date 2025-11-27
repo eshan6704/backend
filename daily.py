@@ -93,7 +93,7 @@ def nse_del(symbol, start_date_str=None, end_date_str=None):
     return None
 
 def daily(symbol,source="yfinace"):
-    if source=="yfinance"
+    if source=="yfinance":
         df = yf.download(symbol + ".NS", period="1y", interval="1d").round(2)
         if df.empty:
             return html_card("Error", f"No daily data found for {symbol}")
