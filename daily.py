@@ -108,6 +108,7 @@ def daily(symbol,source="yfinace"):
     
     if source=="NSE":
         df=nse_del(symbol)
+        print("df from nse data")
     return df
 def fetch_daily(symbol, source,max_rows=200):
     """
