@@ -10,11 +10,13 @@ from cashflow import fetch_cashflow
 from dividend import fetch_dividend
 from split import fetch_split
 from other import fetch_other
-
+from index import fetch_index
 # --- Main UI function ---
 def fetch_data(symbol, req_type):
     req_type = req_type.lower()
-    if req_type == "daily":
+    if req_type == "index":
+        return fetch_index()   
+    elif req_type == "daily":
         return fetch_daily(symbol,"NSE")
     elif req_type == "intraday":
         return fetch_intraday(symbol)
@@ -45,6 +47,7 @@ iface = gr.Interface(
         gr.Dropdown(
             label="Request Type",
             choices=[
+                "index",
                 "info",
                 "intraday",
                 "daily",
