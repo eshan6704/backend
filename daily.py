@@ -101,10 +101,10 @@ def daily(symbol,source="yfinace"):
         # --- Standardize columns ---
         df.columns = ["Close", "High", "Low", "Open", "Volume"]
         df.reset_index(inplace=True)  # make Date a column
-    return df
+    
     if source=="NSE":
         df=nse_del(symbol)
-
+    return df
 def fetch_daily(symbol, source,max_rows=200):
     """
     Fetch daily OHLCV data, calculate TA-Lib indicators + patterns,
