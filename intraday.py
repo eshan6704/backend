@@ -3,20 +3,16 @@ import yfinance as yf
 import pandas as pd
 from common import format_large_number, wrap_html, make_table
 from chart_builder import build_chart
-
+from yf import intraday
 # ============================================================
 #               INTRADAY DATA PROCESSING
 # ============================================================
 
 def fetch_intraday(symbol, indicators=None):
-    """
-    Fetch intraday (5-min) data for a symbol from Yahoo Finance,
-    format it, apply indicators, and return full HTML.
-    """
-    yfsymbol = f"{symbol}.NS"
+
     try:
         # Fetch 1-day intraday 5-min interval
-        df = yf.download(yfsymbol, period="1d", interval="5m").round(2)
+        df = intraday(symbol)
         if df.empty:
             return wrap_html(f"<h1>No intraday data available for {symbol}</h1>")
 
