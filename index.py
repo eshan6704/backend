@@ -21,7 +21,7 @@ def fetch_index(max_rows=200):
         # ----------------------------------
         # Fetch NIFTY 50 data
         # ----------------------------------
-        df = nse_index_df(index_name="NIFTY 50"):
+        df = nse_index_df(index_name="NIFTY 50")
         
 
         if df.empty:
