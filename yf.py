@@ -2,7 +2,7 @@
 import yfinance as yf
 import pandas as pd
 
-def info(symbol):
+def yfinfo(symbol):
 
         tk = yf.Ticker(symbol + ".NS")
         return tk
