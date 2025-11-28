@@ -31,7 +31,7 @@ def fetch_index(max_rows=200):
         # ----------------------------------
         # Convert to HTML
         # ----------------------------------
-        table_html = df_display.to_html(
+        table_html = df.to_html(
             classes="table table-striped table-bordered",
             index=False
         )
