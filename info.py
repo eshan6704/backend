@@ -18,8 +18,8 @@ def fetch_info(symbol: str):
     Only internal code updated to use common.py helpers.
     """
     try:
-        tk=info(symbol)
-        info = tk.info
+        
+        info = yfinfo(symbol)
 
         if not info:
             return html_error(f"No information found for {symbol}")
