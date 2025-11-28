@@ -2,6 +2,10 @@
 import yfinance as yf
 import pandas as pd
 
+def info(symbol):
+        yf_symbol = symbol + ".NS"
+        tk = yf.Ticker(yf_symbol)
+        return tk
 
 def qresult(symbol):
     yfsymbol = symbol + ".NS"
