@@ -7,7 +7,7 @@ import pandas as pd
 import time
 import requests
 import nsepython # Moved import here
-
+#import nse
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
     "Accept-Language": "en-US,en;q=0.9",
@@ -218,3 +218,15 @@ def process_stocks_df(data):
     df_stock = df_stock.drop(columns=['bid', 'ask', 'carryOfCost'], errors="ignore")
 
     return pd.concat([df_stock, df_trade, df_other, df_bidask], axis=1)
+
+
+
+
+date = datetime.date(2025, 11, 27) # Trying a past date where data is likely available
+
+df = nse_preopen_df("NIFTY")
+df_bhav, act_date = fetch_bhavcopy_df(date)
+df_ce, df_pe = fetch_option_chain_df("NIFTY")
+df_m, df_a, df_meta, df_data = nse_index_df("NIFTY 50")
+
+fno = nse_fno_df("RELIANCE")
