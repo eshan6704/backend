@@ -1,12 +1,12 @@
 # dividend.py
 import yfinance as yf
 from common import make_table, wrap_html, format_large_number, html_error
-
+from yf import dividend
 def fetch_dividend(symbol):
-    yfsymbol = symbol + ".NS"
+
     try:
-        ticker = yf.Ticker(yfsymbol)
-        df = ticker.dividends.to_frame('Dividend')
+
+        df = dividend(symbol)
 
         if df.empty:
             return wrap_html(f"<h1>No dividend history available for {symbol}</h1>")
