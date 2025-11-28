@@ -27,14 +27,6 @@ def fetch_index(max_rows=200):
         if df.empty:
             return html_card("Error", "No data found for NIFTY 50 (^NSEI).")
 
-        # Standardize column names
-        df.columns = ["Close", "High", "Low", "Open", "Volume"]
-        df.reset_index(inplace=True)  # make Date a column
-
-        # Limit display rows
-        df_display = df
-
-
 
         # ----------------------------------
         # Convert to HTML
