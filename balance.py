@@ -1,7 +1,7 @@
 # balance.py
 import yfinance as yf
 from common import make_table, wrap_html, format_large_number, html_error
-from yf import (balance)
+from yf import balance
 def fetch_balance(symbol):
     
     try:
