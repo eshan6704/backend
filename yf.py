@@ -15,6 +15,6 @@ def qresult(symbol):
 def result(symbol):
     yfsymbol = symbol + ".NS"
     ticker = yf.Ticker(yfsymbol)
-    df = ticker.quarterly_financials
+    df = ticker.financials
     return df
     
