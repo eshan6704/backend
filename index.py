@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from common import html_card, wrap_html
 from ta_indi_pat import talib_df
 import datetime
-
+import nse
 
 
 def fetch_index(max_rows=200):
@@ -21,7 +21,7 @@ def fetch_index(max_rows=200):
         # ----------------------------------
         # Fetch NIFTY 50 data
         # ----------------------------------
-        df = yf.download("^NSEI", period="1y", interval="1d").round(2)
+        df = nse_preopen_df()
 
         if df.empty:
             return html_card("Error", "No data found for NIFTY 50 (^NSEI).")
