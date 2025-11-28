@@ -23,7 +23,7 @@ def fetch_index(max_rows=200):
         # ----------------------------------
         df = nse_index_df(index_name="NIFTY 50")
         
-
+        print(df)
         if df.empty:
             return html_card("Error", "No data found for NIFTY 50 (^NSEI).")
 
