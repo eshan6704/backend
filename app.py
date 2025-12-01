@@ -58,21 +58,21 @@ with gr.Blocks() as iface:
     # Top compact row
     with gr.Row(elem_id="topbar"):
         symbol = gr.Textbox(
-            label="",                     # No label
-            placeholder="Symbol (e.g., PNB)",
+            label="Stock symbol",                     # No label
+            #placeholder="",
             value="PNB",
-            scale=2
+            scale=1
         )
 
         req_type = gr.Dropdown(
-            label="",                     # No label
+            label="req_type",                     # No label
             choices=[
                 "index", "info", "intraday", "daily",
                 "qresult", "result", "balance",
                 "cashflow", "dividend", "split", "other"
             ],
             value="info",
-            scale=2
+            scale=1
         )
 
         btn = gr.Button("Submit", scale=1)
