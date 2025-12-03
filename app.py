@@ -12,29 +12,31 @@ from stock import *
 def fetch_data(mode, req_type, name):
     req_type = req_type.lower()
     symbol = name
-
-    if req_type == "index":
-        return fetch_index()
-    elif req_type == "daily":
-        return fetch_daily(symbol, "NSE")
-    elif req_type == "intraday":
-        return fetch_intraday(symbol)
-    elif req_type == "info":
-        return fetch_info(symbol)
-    elif req_type == "qresult":
-        return fetch_qresult(symbol)
-    elif req_type == "result":
-        return fetch_result(symbol)
-    elif req_type == "balance":
-        return fetch_balance(symbol)
-    elif req_type == "cashflow":
-        return fetch_cashflow(symbol)
-    elif req_type == "dividend":
-        return fetch_dividend(symbol)
-    elif req_type == "split":
-        return fetch_split(symbol)
-    elif req_type == "other":
-        return fetch_other(symbol)
+    if mode=="index":
+        return indices()    
+    
+    elif mode=="stock"::
+        
+        if req_type == "daily":
+            return fetch_daily(symbol)
+        elif req_type == "intraday":
+            return fetch_intraday(symbol)
+        elif req_type == "info":
+            return fetch_info(symbol)
+        elif req_type == "qresult":
+            return fetch_qresult(symbol)
+        elif req_type == "result":
+            return fetch_result(symbol)
+        elif req_type == "balance":
+            return fetch_balance(symbol)
+        elif req_type == "cashflow":
+            return fetch_cashflow(symbol)
+        elif req_type == "dividend":
+            return fetch_dividend(symbol)
+        elif req_type == "split":
+            return fetch_split(symbol)
+        elif req_type == "other":
+            return fetch_other(symbol)
     else:
         return f"<h1>No handler for {req_type}</h1>"
 
