@@ -75,9 +75,8 @@ with gr.Blocks() as iface:
         req_type = gr.Dropdown(
             label="req_type",
             choices=[
-                "index", "info", "intraday", "daily",
-                "qresult", "result", "balance",
-                "cashflow", "dividend", "split", "other"
+                    "info","intraday","daily","qresult","result","balance","cashflow","dividend","split",
+                "index","open","preopen","ce","pe","future","bhav","highlow"
             ],
             value="info",
             scale=2
