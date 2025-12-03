@@ -43,36 +43,37 @@ def fetch_data(mode, req_type, name):
 
 with gr.Blocks() as iface:
 
-    # CSS for taller row and proper textbox alignment
+    # CSS for proper spacing and full textbox visibility
     gr.HTML("""
     <style>
         .gradio-container { padding-top: 0 !important; }
-        #topbar { margin: 0; padding: 5px; display: flex; align-items: center; gap: 10px; }
-        #topbar .gr-input, #topbar .gr-select, #topbar .gr-button { 
+        #topblock { margin: 0; padding: 5px; }
+        #topblock .gr-input, #topblock .gr-select, #topblock .gr-button { 
             height: 40px !important; 
             font-size: 16px; 
-            box-sizing: border-box;  /* important to include padding in height */
+            box-sizing: border-box; 
         }
-        #topbar .gr-input label, #topbar .gr-select label {
-            display: none; /* optional: hide labels to save vertical space */
+        #topblock .gr-input label, #topblock .gr-select label {
+            display: none; /* optional: hide labels to save space */
         }
     </style>
     """)
 
-    # Top row
-    with gr.Row(elem_id="topbar"):
-        mode_input = gr.Textbox(label="Mode", value="stock", scale=2)
-        symbol = gr.Textbox(label="Stock symbol", value="PNB", scale=2)
-        req_type = gr.Dropdown(
-            label="req_type",
-            choices=[
-                "info","intraday","daily","qresult","result","balance","cashflow",
-                "dividend","split","index","open","preopen","ce","pe","future","bhav","highlow"
-            ],
-            value="info",
-            scale=3
-        )
-        btn = gr.Button("Submit", scale=2)
+    # Top inputs in a block
+    with gr.Block(elem_id="topblock"):
+        
+            mode_input = gr.Textbox(label="Mode", value="stock", scale=2, placeholder="Mode")
+            symbol = gr.Textbox(label="Stock symbol", value="PNB", scale=2, placeholder="Symbol")
+            req_type = gr.Dropdown(
+                label="req_type",
+                choices=[
+                    "info","intraday","daily","qresult","result","balance","cashflow",
+                    "dividend","split","index","open","preopen","ce","pe","future","bhav","highlow"
+                ],
+                value="info",
+                scale=3
+            
+            btn = gr.Button("Submit", scale=2)
 
     # Output area
     output = gr.HTML()
