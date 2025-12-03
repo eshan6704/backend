@@ -106,18 +106,34 @@ def indices():
 # ---------------------------------------------------
 # Specific Index → DataFrames
 # ---------------------------------------------------
-def nse_index_df(index_name="NIFTY 50"):
+def open(index_name="NIFTY 50"):
     url = f"https://www.nseindia.com/api/equity-stockIndices?index={index_name.replace(' ', '%20')}"
     data = fetch_data(url)
     if data is None:
-        return None, None, None, None
+        return None
 
+    # Create DataFrames
     df_market = pd.DataFrame([data["marketStatus"]])
-    df_adv = pd.DataFrame([data["advance"]])
-    df_meta = pd.DataFrame([data["metadata"]])
-    df_data = pd.DataFrame(data["data"])
+    df_adv    = pd.DataFrame([data["advance"]])
+    df_meta   = pd.DataFrame([data["metadata"]])
+    df_data   = pd.DataFrame(data["data"])
 
-    return df_market, df_adv, df_meta, df_data
+    # Convert to HTML
+    html_market = df_market.to_html(index=False, border=1)
+    html_adv    = df_adv.to_html(index=False, border=1)
+    html_meta   = df_meta.to_html(index=False, border=1)
+    html_data   = df_data.to_html(index=False, border=1)
+
+    # Combine all into single HTML string
+    full_html = (
+        "<h3>Market Status</h3>" + html_market +
+        "<br><h3>Advance / Decline</h3>" + html_adv +
+        "<br><h3>Metadata</h3>" + html_meta +
+        "<br><h3>Index Data</h3>" + html_data
+    )
+
+    return full_html
+
 
 # ---------------------------------------------------
 # Option Chain DF (Raw CE/PE)
@@ -136,22 +152,31 @@ def fetch_option_chain_df(symbol="NIFTY"):
 # ---------------------------------------------------
 # Pre-open market → DataFrame
 # ---------------------------------------------------
-def nse_preopen_df(key="NIFTY"):
+def preopen(key="NIFTY"):
     url = f"https://www.nseindia.com/api/market-data-pre-open?key={key}"
     data = fetch_data(url)
-    if data:
-        return pd.DataFrame(data.get("data", []))
-    return None
+    if not data:
+        return None
+
+    df = pd.DataFrame(data.get("data", []))
+
+    # Convert to one HTML table
+    html_table = df.to_html(index=False, border=1)
+
+    # Wrap into single block
+    full_html = "<h3>Pre-Open Market Data</h3>" + html_table
+
+    return full_html
 
 # ---------------------------------------------------
 # FNO Quote → DataFrames
 # ---------------------------------------------------
-def nse_fno_df(symbol):
-    payload = nsepython.nse_quote(symbol) # Direct call
+def fno(symbol):
+    payload = nsepython.nse_quote(symbol)
     if not payload:
         return None
 
-    # info + timestamps + volatility info
+    # ---------- INFO ----------
     info_keys = list(payload["info"].keys()) + [
         "fut_timestamp",
         "opt_timestamp",
@@ -170,18 +195,30 @@ def nse_fno_df(symbol):
 
     df_info = pd.DataFrame([info_values], columns=info_keys)
 
+    # ---------- MCAP ----------
     df_mcap = pd.DataFrame(payload["underlyingInfo"].get("marketCap", {}))
+
+    # ---------- FNO LIST ----------
     df_fno_list = pd.DataFrame(payload.get("allSymbol", []), columns=["FNO_Symbol"])
 
-    # Core stock depth
+    # ---------- STOCK DEPTH ----------
     df_stock = process_stocks_df(payload["stocks"])
 
-    return {
-        "info": df_info,
-        "mcap": df_mcap,
-        "fno": df_fno_list,
-        "stock": df_stock
-    }
+    # Convert all to HTML
+    html_info = df_info.to_html(index=False, border=1)
+    html_mcap = df_mcap.to_html(index=False, border=1)
+    html_fno  = df_fno_list.to_html(index=False, border=1)
+    html_stock = df_stock.to_html(index=False, border=1)
+
+    # Combine into full HTML block
+    full_html = (
+        "<h3>FNO Info</h3>" + html_info +
+        "<br><h3>Market Cap</h3>" + html_mcap +
+        "<br><h3>FNO Symbol List</h3>" + html_fno +
+        "<br><h3>Stock Depth</h3>" + html_stock
+    )
+
+    return full_html
 
 # ---------------------------------------------------
 # Handle nested stock → DF
@@ -275,8 +312,7 @@ def to_numeric_safe(series):
     series = series.astype(str).str.replace(',', '')
     return pd.to_numeric(series, errors='coerce').fillna(0)
 
-
-def nse_del(symbol, start_date_str=None, end_date_str=None):
+def nse_daily(symbol, start_date_str=None, end_date_str=None):
     # Default end date is today
     end_date = datetime.now()
     if end_date_str:
@@ -286,7 +322,7 @@ def nse_del(symbol, start_date_str=None, end_date_str=None):
             print(f"Warning: Invalid end date format '{end_date_str}'. Using today's date.")
             end_date = datetime.now()
 
-    # Default start date is one year prior to end_date
+    # Default start date is one year prior
     start_date = end_date - timedelta(days=365)
     if start_date_str:
         try:
@@ -295,41 +331,52 @@ def nse_del(symbol, start_date_str=None, end_date_str=None):
             print(f"Warning: Invalid start date format '{start_date_str}'. Using default start date.")
             start_date = end_date - timedelta(days=365)
 
-    # Ensure start_date is not after end_date
+    # Swap if needed
     if start_date > end_date:
         print("Warning: Start date is after end date. Swapping dates.")
         start_date, end_date = end_date, start_date
 
     url = url_nse_del(symbol, start_date, end_date)
-    headers = {
-        'User-Agent': 'Mozilla/5.0'
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
+
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        if response.content:
-            df = pd.read_csv(io.StringIO(response.content.decode('utf-8'))).round(2)
-            df.columns = df.columns.str.strip()
-            df.rename(columns=nse_del_key_map, inplace=True)
 
-            # Capitalize the first letter of ALL column names after renaming
-            df.columns = [col.capitalize() for col in df.columns]
+        if not response.content:
+            return None
 
-            # Remove 'Symbol', 'Series', 'Avgprice', and 'Last' columns (now capitalized)
-            df.drop(columns=['Symbol','Series','Avgprice','Last'], errors='ignore', inplace=True)
+        # Build DataFrame
+        df = pd.read_csv(io.StringIO(response.content.decode("utf-8"))).round(2)
+        df.columns = df.columns.str.strip()
+        df.rename(columns=nse_del_key_map, inplace=True)
 
-            # Convert 'Date' column to datetime objects
-            df['Date'] = pd.to_datetime(df['Date'], format='%d-%b-%Y').dt.strftime('%Y-%m-%d')
+        # Capitalize column names
+        df.columns = [col.capitalize() for col in df.columns]
 
-            numeric_cols = ['Close', 'Preclose', 'Open', 'High', 'Low', 'Volume', 'Delivery', 'Turnover', 'Trades']
-            # Ensure numeric_cols are capitalized before checking and conversion
-            numeric_cols_capitalized = [col.capitalize() for col in numeric_cols]
-            for col in numeric_cols_capitalized:
-                if col in df.columns:
-                    df[col] = to_numeric_safe(df[col])
-                else:
-                    df[col] = 0
-            return df
+        # Remove unwanted columns
+        df.drop(columns=["Symbol", "Series", "Avgprice", "Last"], errors="ignore", inplace=True)
+
+        # Format date
+        df["Date"] = pd.to_datetime(df["Date"], format="%d-%b-%Y").dt.strftime("%Y-%m-%d")
+
+        # Ensure numeric columns
+        numeric_cols = ['Close', 'Preclose', 'Open', 'High', 'Low', 'Volume', 'Delivery', 'Turnover', 'Trades']
+        numeric_cols_cap = [c.capitalize() for c in numeric_cols]
+
+        for col in numeric_cols_cap:
+            if col in df.columns:
+                df[col] = to_numeric_safe(df[col])
+            else:
+                df[col] = 0
+
+        # Convert to HTML
+        html_table = df.to_html(index=False, border=1)
+
+        full_html = "<h3>Daily Data</h3>" + html_table
+        return full_html
+
     except Exception as e:
         print(f"Error fetching data from NSE for {symbol}: {e}")
-    return None
+        return None
+
