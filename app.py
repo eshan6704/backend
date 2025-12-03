@@ -1,16 +1,9 @@
 import gradio as gr
 
-from daily import fetch_daily
-from intraday import fetch_intraday
-from info import fetch_info
-from qresult import fetch_qresult
-from result import fetch_result
-from balance import fetch_balance
-from cashflow import fetch_cashflow
-from dividend import fetch_dividend
-from split import fetch_split
-from other import fetch_other
-from index import fetch_index
+from nse import *
+from stock import *
+
+
 
 
 # -----------------------------
