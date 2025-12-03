@@ -1,4 +1,3 @@
-# app.py
 import gradio as gr
 
 from daily import fetch_daily
@@ -15,13 +14,8 @@ from index import fetch_index
 
 # --- Main UI function ---
 def fetch_data(mode, req_type, name):
-    """
-    mode: 'stock' or 'index' (currently not used, can be used in future)
-    req_type: type of data requested (info, daily, intraday, etc.)
-    name: stock symbol or index name
-    """
     req_type = req_type.lower()
-    symbol = name  # existing code uses 'symbol'
+    symbol = name
     
     if req_type == "index":
         return fetch_index()
@@ -51,21 +45,25 @@ def fetch_data(mode, req_type, name):
 # --- Minimal Clean UI ---
 with gr.Blocks() as iface:
 
-    # Inject CSS for compact UI
+    # Inject CSS for compact and taller UI
     gr.HTML("""
     <style>
         .gradio-container { padding-top: 0 !important; }
-        #topbar { margin: 0; padding: 0; }
-        #topbar .gr-input, #topbar .gr-select { margin-top: 0 !important; }
+        #topbar { margin: 0; padding: 5px; height: 60px; }
+        #topbar .gr-input, #topbar .gr-select, #topbar .gr-button { 
+            margin-top: 0 !important; 
+            height: 40px !important;  /* Increase input height */
+            font-size: 16px;
+        }
     </style>
     """)
 
-    # Top compact row
-    with gr.Row(elem_id="topbar"):
+    # Top row with bigger height
+    with gr.Row(elem_id="topbar", variant="default", gap="small"):
         mode_input = gr.Textbox(
             label="Mode",
-            value="stock",  # default value
-            scale=1
+            value="stock",
+            scale=2
         )
         symbol = gr.Textbox(
             label="Stock symbol",
@@ -75,11 +73,11 @@ with gr.Blocks() as iface:
         req_type = gr.Dropdown(
             label="req_type",
             choices=[
-                    "info","intraday","daily","qresult","result","balance","cashflow","dividend","split",
-                "index","open","preopen","ce","pe","future","bhav","highlow"
+                "info","intraday","daily","qresult","result","balance","cashflow",
+                "dividend","split","index","open","preopen","ce","pe","future","bhav","highlow"
             ],
             value="info",
-            scale=2
+            scale=3
         )
         btn = gr.Button("Submit", scale=2)
 
