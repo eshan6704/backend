@@ -4,59 +4,101 @@ from nse import *
 from stock import *
 
 
+# ======================================================
+# Scrollable HTML wrapper for all table-based output
+# ======================================================
+SCROLL_WRAP = """
+<div style="
+    max-height: 80vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+">
+{{HTML}}
+</div>
+"""
 
 
-# -----------------------------
-# Data fetch function
-# -----------------------------
+def wrap(html):
+    """Wrap returned HTML inside scrollable container"""
+    if html is None:
+        return "<h3>No Data</h3>"
+    return SCROLL_WRAP.replace("{{HTML}}", html)
+
+
+# ======================================================
+# Data Fetcher
+# ======================================================
 def fetch_data(mode, req_type, name):
     req_type = req_type.lower()
     symbol = name
-    if mode=="index":
-        if req_type=="indices":
-            return indices()
-        elif req_type=="open":
-            return open(name)
-        elif req_type=="preopen":
-            return preopen(name)
-        elif req_type=="fno":
-            return fno(name)
-    
-    elif mode=="stock":
-        
+
+    if mode == "index":
+
+        if req_type == "indices":
+            return wrap(indices())
+
+        elif req_type == "open":
+            return wrap(open(name))
+
+        elif req_type == "preopen":
+            return wrap(preopen(name))
+
+        elif req_type == "fno":
+            return wrap(fno(name))
+
+        else:
+            return wrap(f"<h3>No handler for {req_type}</h3>")
+
+    elif mode == "stock":
+
         if req_type == "daily":
-            return fetch_daily(symbol)
+            return wrap(fetch_daily(symbol))
+
         elif req_type == "intraday":
-            return fetch_intraday(symbol)
+            return wrap(fetch_intraday(symbol))
+
         elif req_type == "info":
-            return fetch_info(symbol)
+            return wrap(fetch_info(symbol))
+
         elif req_type == "qresult":
-            return fetch_qresult(symbol)
+            return wrap(fetch_qresult(symbol))
+
         elif req_type == "result":
-            return fetch_result(symbol)
+            return wrap(fetch_result(symbol))
+
         elif req_type == "balance":
-            return fetch_balance(symbol)
+            return wrap(fetch_balance(symbol))
+
         elif req_type == "cashflow":
-            return fetch_cashflow(symbol)
+            return wrap(fetch_cashflow(symbol))
+
         elif req_type == "dividend":
-            return fetch_dividend(symbol)
+            return wrap(fetch_dividend(symbol))
+
         elif req_type == "split":
-            return fetch_split(symbol)
+            return wrap(fetch_split(symbol))
+
         elif req_type == "other":
-            return fetch_other(symbol)
-    else:
-        return f"<h1>No handler for {req_type}</h1>"
+            return wrap(fetch_other(symbol))
+
+        else:
+            return wrap(f"<h3>No handler for {req_type}</h3>")
+
+    return wrap(f"<h3>No valid mode: {mode}</h3>")
 
 
-# -----------------------------
+# ======================================================
 # UI
-# -----------------------------
+# ======================================================
 with gr.Blocks(title="Stock / Index App") as iface:
 
     gr.Markdown("### **Stock / Index Data Fetcher**")
 
-    # ----- Top bar -----
     with gr.Row():
+
         mode_input = gr.Textbox(
             label="Mode",
             value="stock",
@@ -83,14 +125,14 @@ with gr.Blocks(title="Stock / Index App") as iface:
 
         btn = gr.Button("Fetch", scale=1)
 
-    # ----- Output -----
+    # Output box (scroll handled by wrapper)
     output = gr.HTML(label="Output")
 
     btn.click(fetch_data, inputs=[mode_input, req_type, symbol], outputs=output)
 
 
-# -----------------------------
+# ======================================================
 # Launch
-# -----------------------------
+# ======================================================
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=7860)
