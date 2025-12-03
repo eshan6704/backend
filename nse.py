@@ -40,7 +40,7 @@ def clean_dataframe(df):
 # ---------------------------------------------------
 # Bhavcopy Fetch → DataFrame
 # ---------------------------------------------------
-def fetch_bhavcopy_df(date):
+def nse_bhavcopy(date):
     """Returns Cleaned Bhavcopy DF for EQ / BE / SM"""
     date_str = date.strftime("%d-%m-%Y")
     print(f"Attempting to fetch bhavcopy for date: {date_str}")
@@ -67,7 +67,7 @@ def fetch_bhavcopy_df(date):
 # ---------------------------------------------------
 # Stock Deliverable DF (security-wise archive)
 # ---------------------------------------------------
-def fetch_stock_df(nse_module, stock, start, end, series="ALL"):
+def nse_stock(nse_module, stock, start, end, series="ALL"):
     """Return DF for security-wise archive (deliverable + all columns)"""
 
     df = nse_module.security_wise_archive(start, end, stock, series)
@@ -78,7 +78,7 @@ def fetch_stock_df(nse_module, stock, start, end, series="ALL"):
 # ---------------------------------------------------
 # All NSE Indices → DataFrames
 # ---------------------------------------------------
-def indices():
+def nse_indices():
     url = "https://www.nseindia.com/api/allIndices"
     data = fetch_data(url)
     if data is None:
@@ -165,7 +165,7 @@ def fetch_option_chain_df(symbol="NIFTY"):
 # ---------------------------------------------------
 # Pre-open market → DataFrame
 # ---------------------------------------------------
-def preopen(key="NIFTY"):
+def nse_preopen(key="NIFTY"):
     url = f"https://www.nseindia.com/api/market-data-pre-open?key={key}"
     data = fetch_data(url)
     if not data:
@@ -184,7 +184,7 @@ def preopen(key="NIFTY"):
 # ---------------------------------------------------
 # FNO Quote → DataFrames
 # ---------------------------------------------------
-def fno(symbol):
+def nse_fno(symbol):
     payload = nsepython.nse_quote(symbol)
     if not payload:
         return None
