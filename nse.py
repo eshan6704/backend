@@ -119,51 +119,41 @@ def nse_high_low():
 # ======================================================================
 # BHAVCOPY
 # ======================================================================
+
 def nse_bhav(date_str):
     """
-    Supports input date format:
-    - DDMMYYYY
-    - DD-MM-YYYY
-    - DD/MM/YYYY
-    Converts automatically to DDMMYYYY for NSE API.
+    Fetch NSE Bhavcopy for given date.
+    date_str: "DD-MM-YYYY" or "DD/MM/YYYY" or "DDMMYYYY"
     """
-
-    # ---------------------------
     # Normalize date
-    # ---------------------------
     try:
-        # Replace "-" or "/" with ""
-        clean = date_str.replace("-", "").replace("/", "")
+        if "-" in date_str:
+            dt = datetime.strptime(date_str, "%d-%m-%Y")
+        elif "/" in date_str:
+            dt = datetime.strptime(date_str, "%d/%m/%Y")
+        elif len(date_str) == 8:
+            dt = datetime.strptime(date_str, "%d%m%Y")
+        else:
+            return f"<p>Invalid date format: {date_str}</p>"
+    except Exception as e:
+        return f"<p>Error parsing date: {e}</p>"
 
-        # Now clean should be DDMMYYYY
-        if len(clean) != 8:
-            return "<p>Error: Invalid date format. Use DDMMYYYY / DD-MM-YYYY / DD/MM/YYYY</p>"
-
-        # Final API format = DDMMYYYY
-        api_date = clean
-
-    except Exception:
-        return "<p>Error: Unable to parse date.</p>"
-
-    # ---------------------------
-    # Fetch Data
-    # ---------------------------
-    url = (
-        "https://www.nseindia.com/api/reports"
-        f"?archives=true&date={api_date}&type=equities&mode=single"
-    )
+    date_api = dt.strftime("%d-%m-%Y")
+    url = f"https://www.nseindia.com/api/reports?archives=true&date={date_api}&type=equities&mode=single"
 
     try:
-        r = requests.get(url, headers=NSE_HEADERS)
+        r = session.get(url, headers=NSE_HEADERS, timeout=5)
+        r.raise_for_status()
         data = r.json()
-
         df = pd.DataFrame(data.get("data", []))
 
-        return _to_html(f"Bhavcopy {api_date}", df)
+        if df.empty:
+            return f"<h3>Bhavcopy {date_api}</h3><p>No data available</p>"
+
+        return _to_html(f"Bhavcopy {date_api}", df)
 
     except Exception as e:
         return f"<p>Error fetching bhavcopy: {e}</p>"
-
 
 # ======================================================================
 # ALL NSE INDICES LIST
