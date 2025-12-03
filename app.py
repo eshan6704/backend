@@ -12,6 +12,7 @@ from split import fetch_split
 from other import fetch_other
 from index import fetch_index
 
+
 # -----------------------------
 # Data fetch function
 # -----------------------------
@@ -44,33 +45,50 @@ def fetch_data(mode, req_type, name):
     else:
         return f"<h1>No handler for {req_type}</h1>"
 
-# -----------------------------
-# Gradio UI (default styling)
-# -----------------------------
-with gr.Blocks() as iface:
 
-    # Top inputs
-    with gr.Blocks():
-        mode_input = gr.Textbox(label="Mode", value="stock", placeholder="Mode")
-        symbol = gr.Textbox(label="Stock symbol", value="PNB", placeholder="Symbol")
+# -----------------------------
+# UI
+# -----------------------------
+with gr.Blocks(title="Stock / Index App") as iface:
+
+    gr.Markdown("### **Stock / Index Data Fetcher**")
+
+    # ----- Top bar -----
+    with gr.Row():
+        mode_input = gr.Textbox(
+            label="Mode",
+            value="stock",
+            placeholder="stock / index",
+            scale=1
+        )
+
+        symbol = gr.Textbox(
+            label="Symbol / Index Name",
+            value="PNB",
+            placeholder="Enter symbol",
+            scale=2
+        )
+
         req_type = gr.Dropdown(
-            label="req_type",
+            label="Request Type",
             choices=[
                 "info","intraday","daily","qresult","result","balance","cashflow",
                 "dividend","split","index","open","preopen","ce","pe","future","bhav","highlow"
             ],
-            value="info"
+            value="info",
+            scale=2
         )
-        btn = gr.Button("Submit")
 
-    # Output area
-    output = gr.HTML()
+        btn = gr.Button("Fetch", scale=1)
 
-    # Click event
+    # ----- Output -----
+    output = gr.HTML(label="Output")
+
     btn.click(fetch_data, inputs=[mode_input, req_type, symbol], outputs=output)
 
+
 # -----------------------------
-# Launch server
+# Launch
 # -----------------------------
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=7860)
