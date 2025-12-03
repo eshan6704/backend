@@ -40,28 +40,39 @@ INDEX_REQ = [
 
 
 # ======================================================
-# Update Dropdown + Symbol Based on Mode
+# Update Dropdown + Symbol + Date Visibility Based on Mode/Req
 # ======================================================
-def update_on_mode(mode):
+def update_on_mode(mode, req_type_val):
+    # Default: hide date field
+    date_field_update = gr.update(visible=False, value="")
+
     if mode == "stock":
         return (
             gr.update(choices=STOCK_REQ, value="info", visible=True),
-            gr.update(value="ITC", placeholder="Enter stock symbol")
+            gr.update(value="ITC", placeholder="Enter stock symbol"),
+            date_field_update
         )
+
     elif mode == "index":
-        return (
-            gr.update(choices=INDEX_REQ, value="nse_indices", visible=True),
-            gr.update(value="NIFTY 50", placeholder="Enter index name or date for bhavcopy (DDMMYYYY / DD-MM-YYYY / DD/MM/YYYY)")
-        )
-    return (gr.update(visible=False), gr.update(value="", placeholder=""))
+        # Dropdown choices
+        dropdown_update = gr.update(choices=INDEX_REQ, value="nse_indices", visible=True)
+        symbol_update = gr.update(value="NIFTY 50", placeholder="Enter index name")
+
+        # If bhavcopy is selected, show date field
+        if req_type_val == "nse_bhav":
+            date_field_update = gr.update(visible=True, placeholder="Enter date (DD-MM-YYYY)")
+
+        return dropdown_update, symbol_update, date_field_update
+
+    return gr.update(visible=False), gr.update(value=""), date_field_update
 
 
 # ======================================================
 # Data Fetcher
 # ======================================================
-def fetch_data(mode, req_type, name):
+def fetch_data(mode, req_type, symbol, date_str):
     req_type = req_type.lower()
-    symbol = name.strip()
+    symbol = symbol.strip()
 
     if mode == "index":
         if req_type == "nse_indices":
@@ -75,8 +86,8 @@ def fetch_data(mode, req_type, name):
         elif req_type == "nse_future":
             return wrap(nse_future(symbol))
         elif req_type == "nse_bhav":
-            # If blank, use today
-            date_input = symbol or pd.Timestamp.today().strftime("%d-%m-%Y")
+            # Use date_str if provided, else today
+            date_input = date_str.strip() or pd.Timestamp.today().strftime("%d-%m-%Y")
             return wrap(nse_bhav(date_input))
         elif req_type == "nse_highlow":
             return wrap(nse_highlow())
@@ -140,19 +151,32 @@ with gr.Blocks(title="Stock / Index App") as iface:
             scale=2
         )
 
+        date_field = gr.Textbox(
+            label="Date",
+            value="",
+            placeholder="DD-MM-YYYY",
+            visible=False,
+            scale=1
+        )
+
         btn = gr.Button("Fetch", scale=1)
 
     output = gr.HTML(label="Output")
 
-    # Mode changes dropdown + symbol placeholder
+    # Update dropdown, symbol, date field when mode OR request type changes
     mode_input.change(
         update_on_mode,
-        inputs=mode_input,
-        outputs=[req_type, symbol]
+        inputs=[mode_input, req_type],
+        outputs=[req_type, symbol, date_field]
+    )
+    req_type.change(
+        update_on_mode,
+        inputs=[mode_input, req_type],
+        outputs=[req_type, symbol, date_field]
     )
 
     # Fetch button
-    btn.click(fetch_data, inputs=[mode_input, req_type, symbol], outputs=output)
+    btn.click(fetch_data, inputs=[mode_input, req_type, symbol, date_field], outputs=output)
 
 
 # ======================================================
