@@ -1,7 +1,7 @@
 import gradio as gr
-from nse import *
+
 from stock import *
-from indices_html import *
+from nsepython import *
 import pandas as pd
 
 # ======================================================
