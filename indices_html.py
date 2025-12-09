@@ -9,7 +9,7 @@ def build_indices_html():
     data_df = p["data"]
     dates_df = p["dates"]
 
-    # Convert to JSON
+    # JSON conversion
     data_json = json.dumps(data_df.to_dict(orient="records"), ensure_ascii=False)
     dates_json = json.dumps(dates_df.to_dict(orient="records"), ensure_ascii=False)
 
@@ -28,6 +28,13 @@ body {{
     font-family: Arial, sans-serif;
     padding: 20px;
 }}
+
+button {{
+    padding: 7px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}}
+
 .scroll-table {{
     width: 100%;
     overflow: auto;
@@ -35,16 +42,19 @@ body {{
     max-height: 450px;
     margin-bottom: 20px;
 }}
+
 table {{
     border-collapse: collapse;
     width: max-content;
     min-width: 100%;
 }}
+
 th, td {{
     border: 1px solid #ddd;
     padding: 8px;
     white-space: nowrap;
 }}
+
 th {{
     background-color: #007bff;
     color: white;
@@ -52,11 +62,7 @@ th {{
     top: 0;
     z-index: 5;
 }}
-#datesTable {{
-    margin-bottom: 25px;
-    width: max-content;
-    border: 1px solid #ccc;
-}}
+
 .chart-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -64,14 +70,17 @@ th {{
     gap: 20px;
     width: 100%;
 }}
+
 .chart-box {{
     width: 100%;
     height: 100%;
     border: 1px solid #ccc;
 }}
+
 #chart365 {{
     grid-column: 1 / 3;
 }}
+
 select {{
     padding: 6px;
     margin: 8px 0;
@@ -83,13 +92,26 @@ select {{
 
 <h2>NSE Indices Dashboard</h2>
 
-<!-- DATES TABLE -->
-<h3>Reference Dates</h3>
-<table id="datesTable"></table>
+<script>
+const records = {data_json};
+const dates = {dates_json};
+const DEFAULT_KEY = "{DEFAULT_KEY}";
+const DEFAULT_SYMBOL = "{DEFAULT_SYMBOL}";
+</script>
+
+<!-- ===================== MAIN TABLE SECTION ===================== -->
+<h3>Main Full Indices Table</h3>
+<button onclick="toggleMainTable()">Show / Hide Main Table</button>
+
+<div id="mainTableSection" class="scroll-table" style="display:none;">
+    <table id="mainTable"></table>
+</div>
 
 <hr>
 
-<!-- Dropdown for Key -->
+<!-- ===================== FILTERED TABLE SECTION ===================== -->
+<h3>Filter Table by Category</h3>
+
 <label><b>Select Index Category:</b></label>
 <select id="keyDropdown"></select>
 
@@ -99,8 +121,10 @@ select {{
 
 <hr>
 
-<!-- Dropdown for Charts -->
-<label><b>Select Index for Charts:</b></label>
+<!-- ===================== CHART SECTION ===================== -->
+<h3>Charts Based on Index</h3>
+
+<label><b>Select Index:</b></label>
 <select id="chartDropdown"></select>
 
 <div class="chart-grid">
@@ -110,66 +134,59 @@ select {{
 </div>
 
 <script>
-const records = {data_json};
-const dates = {dates_json};
-const DEFAULT_KEY = "{DEFAULT_KEY}";
-const DEFAULT_SYMBOL = "{DEFAULT_SYMBOL}";
 
+// ------------------ MAIN FULL TABLE ------------------
+function buildMainTable() {
+    const table = document.getElementById("mainTable");
+    const cols = Object.keys(records[0]);
+
+    let header = "<tr>";
+    cols.forEach(c => header += `<th>${c}</th>`);
+    header += "</tr>";
+
+    let rows = "";
+    records.forEach(r => {
+        rows += "<tr>";
+        cols.forEach(c => rows += `<td>${r[c]}</td>`);
+        rows += "</tr>";
+    });
+
+    table.innerHTML = header + rows;
+}
+
+function toggleMainTable() {
+    const sec = document.getElementById("mainTableSection");
+    sec.style.display = sec.style.display === "none" ? "block" : "none";
+}
+
+// Build main table immediately
+buildMainTable();
+
+
+// ------------------ KEY DROPDOWN ------------------
 const keyDropdown = document.getElementById("keyDropdown");
 const chartDropdown = document.getElementById("chartDropdown");
 
-// ------------------- Build Dates Table -------------------
-function buildDatesTable() {{
-    const table = document.getElementById("datesTable");
-    const row = dates[0];
-    let header = "<tr>";
-    Object.keys(row).forEach(k => header += `<th>${{k}}</th>`);
-    header += "</tr>";
-    let body = "<tr>";
-    Object.values(row).forEach(v => body += `<td>${{v}}</td>`);
-    body += "</tr>";
-    table.innerHTML = header + body;
-}}
-buildDatesTable();
-
-// ------------------- Populate Key Dropdown -------------------
 const keyList = [...new Set(records.map(r => r.key))];
-keyList.forEach(k => {{
+keyList.forEach(k => {
     const opt = document.createElement("option");
     opt.value = k;
     opt.textContent = k;
     if (k === DEFAULT_KEY) opt.selected = true;
     keyDropdown.appendChild(opt);
-}});
+});
 
-// ------------------- Populate Chart Dropdown -------------------
-function populateChartDropdown(keyVal) {{
-    chartDropdown.innerHTML = "";
-    records.filter(r => r.key === keyVal).forEach(r => {{
-        const opt = document.createElement("option");
-        opt.value = r.indexSymbol;
-        opt.textContent = r.index;
-        chartDropdown.appendChild(opt);
-    }});
 
-    // Auto-select default
-    [...chartDropdown.options].forEach(opt => {{
-        if (opt.textContent.toUpperCase().includes(DEFAULT_SYMBOL.toUpperCase()))
-            opt.selected = true;
-    }});
-}};
-
-// ------------------- Build Filtered Table -------------------
-function buildAltTable(keyName) {{
+// ------------------ FILTERED TABLE ------------------
+function buildAltTable(keyName) {
     const table = document.getElementById("altTable");
-    const div = document.getElementById("altTableSection");
+    const sec = document.getElementById("altTableSection");
 
     const filtered = records.filter(r => r.key === keyName);
-    if (!filtered.length) {{
+    if (!filtered.length) {
         table.innerHTML = "<tr><td>No Data</td></tr>";
-        div.style.display = "none";
         return;
-    }}
+    }
 
     const hiddenCols = [
         "key","chartTodayPath","chart30dPath","chart30Path","chart365dPath",
@@ -177,50 +194,69 @@ function buildAltTable(keyName) {{
         "oneWeekAgoVal","oneYearAgoVal","index","indicativeClose"
     ];
 
-    const columns = Object.keys(filtered[0]).filter(c => !hiddenCols.includes(c));
+    const cols = Object.keys(filtered[0]).filter(c => !hiddenCols.includes(c));
 
     let header = "<tr>";
-    columns.forEach(c => header += `<th>${{c}}</th>`);
+    cols.forEach(c => header += `<th>${c}</th>`);
     header += "</tr>";
 
     let rows = "";
-    filtered.forEach(obj => {{
+    filtered.forEach(obj => {
         rows += "<tr>";
-        columns.forEach(c => rows += `<td>${{obj[c]}}</td>`);
+        cols.forEach(c => rows += `<td>${obj[c]}</td>`);
         rows += "</tr>";
-    }});
+    });
 
     table.innerHTML = header + rows;
-    div.style.display = "block";
-}};
+}
 
-// ------------------- Load Charts -------------------
-function loadCharts(symbol) {{
+
+// ------------------ CHART DROPDOWN ------------------
+function populateChartDropdown(keyVal) {
+    chartDropdown.innerHTML = "";
+
+    records.filter(r => r.key === keyVal).forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.indexSymbol;
+        opt.textContent = r.index;
+        chartDropdown.appendChild(opt);
+    });
+
+    [...chartDropdown.options].forEach(opt => {
+        if (opt.textContent.toUpperCase().includes(DEFAULT_SYMBOL.toUpperCase()))
+            opt.selected = true;
+    });
+}
+
+
+// ------------------ LOAD CHARTS ------------------
+function loadCharts(symbol) {
     const row = records.find(r => r.indexSymbol === symbol);
     if (!row) return;
 
     document.getElementById("chartToday").src = row.chartTodayPath;
     document.getElementById("chart30").src = row.chart30dPath || row.chart30Path;
     document.getElementById("chart365").src = row.chart365dPath;
-}};
+}
 
-// Events
-keyDropdown.addEventListener("change", () => {{
+
+// ------------------ EVENT HANDLERS ------------------
+keyDropdown.addEventListener("change", () => {
     const keyVal = keyDropdown.value;
     buildAltTable(keyVal);
     populateChartDropdown(keyVal);
     loadCharts(chartDropdown.value);
-}});
+});
 
-chartDropdown.addEventListener("change", () => {{
+chartDropdown.addEventListener("change", () => {
     loadCharts(chartDropdown.value);
-}});
+});
 
-// ------------------- Initial Load -------------------
+
+// ------------------ INITIAL LOAD ------------------
 buildAltTable(DEFAULT_KEY);
 populateChartDropdown(DEFAULT_KEY);
 
-// Pick best match for default symbol
 let start = records.find(
     r => r.index.toUpperCase().includes(DEFAULT_SYMBOL.toUpperCase())
 );
