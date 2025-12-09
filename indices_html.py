@@ -1,15 +1,15 @@
 import json
 import pandas as pd
 from nsepython import *
+
 def build_indices_html():
 
-    p=indices()
+    p = indices()
 
     data_df = p["data"]
     dates_df = p["dates"]
-    print(data_df)
-    print(dates_df)
-    # Convert to JSON for JS
+
+    # Convert to JSON
     data_json = json.dumps(data_df.to_dict(orient="records"), ensure_ascii=False)
     dates_json = json.dumps(dates_df.to_dict(orient="records"), ensure_ascii=False)
 
@@ -57,7 +57,6 @@ th {{
     width: max-content;
     border: 1px solid #ccc;
 }}
-
 .chart-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -65,17 +64,14 @@ th {{
     gap: 20px;
     width: 100%;
 }}
-
 .chart-box {{
     width: 100%;
     height: 100%;
     border: 1px solid #ccc;
 }}
-
 #chart365 {{
     grid-column: 1 / 3;
 }}
-
 select {{
     padding: 6px;
     margin: 8px 0;
@@ -153,10 +149,15 @@ function populateChartDropdown(keyVal) {{
         const opt = document.createElement("option");
         opt.value = r.indexSymbol;
         opt.textContent = r.index;
-        if (r.index === DEFAULT_SYMBOL) opt.selected = true;
         chartDropdown.appendChild(opt);
     }});
-}}
+
+    // Auto-select default
+    [...chartDropdown.options].forEach(opt => {{
+        if (opt.textContent.toUpperCase().includes(DEFAULT_SYMBOL.toUpperCase()))
+            opt.selected = true;
+    }});
+}};
 
 // ------------------- Build Filtered Table -------------------
 function buildAltTable(keyName) {{
@@ -171,7 +172,7 @@ function buildAltTable(keyName) {{
     }}
 
     const hiddenCols = [
-        "key", "chartTodayPath", "chart30dPath", "chart365dPath",
+        "key","chartTodayPath","chart30dPath","chart30Path","chart365dPath",
         "date365dAgo","date30dAgo","previousDay","oneWeekAgo","oneMonthAgoVal",
         "oneWeekAgoVal","oneYearAgoVal","index","indicativeClose"
     ];
@@ -191,18 +192,19 @@ function buildAltTable(keyName) {{
 
     table.innerHTML = header + rows;
     div.style.display = "block";
-}}
+}};
 
 // ------------------- Load Charts -------------------
 function loadCharts(symbol) {{
     const row = records.find(r => r.indexSymbol === symbol);
     if (!row) return;
-    document.getElementById("chartToday").src = row.chartTodayPath;
-    document.getElementById("chart30").src = row.chart30dPath;
-    document.getElementById("chart365").src = row.chart365dPath;
-}}
 
-// Event listeners
+    document.getElementById("chartToday").src = row.chartTodayPath;
+    document.getElementById("chart30").src = row.chart30dPath || row.chart30Path;
+    document.getElementById("chart365").src = row.chart365dPath;
+}};
+
+// Events
 keyDropdown.addEventListener("change", () => {{
     const keyVal = keyDropdown.value;
     buildAltTable(keyVal);
@@ -217,7 +219,14 @@ chartDropdown.addEventListener("change", () => {{
 // ------------------- Initial Load -------------------
 buildAltTable(DEFAULT_KEY);
 populateChartDropdown(DEFAULT_KEY);
-loadCharts(records.find(r => r.index === DEFAULT_SYMBOL).indexSymbol);
+
+// Pick best match for default symbol
+let start = records.find(
+    r => r.index.toUpperCase().includes(DEFAULT_SYMBOL.toUpperCase())
+);
+if (!start) start = records[0];
+
+loadCharts(start.indexSymbol);
 
 </script>
 
