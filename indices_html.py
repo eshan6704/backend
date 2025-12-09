@@ -7,7 +7,8 @@ def build_indices_html():
 
     data_df = p["data"]
     dates_df = p["dates"]
-
+    print(data_df)
+    print(dates_df)
     # Convert to JSON for JS
     data_json = json.dumps(data_df.to_dict(orient="records"), ensure_ascii=False)
     dates_json = json.dumps(dates_df.to_dict(orient="records"), ensure_ascii=False)
