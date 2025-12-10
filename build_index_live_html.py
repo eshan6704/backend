@@ -1,7 +1,7 @@
 from nsepython import *
 import pandas as pd
 
-def build_index_live_html(name):
+def build_index_live_html(name=""):
     p = nse_index_live(name)
 
     full_df = p.get("data", pd.DataFrame())
@@ -12,27 +12,27 @@ def build_index_live_html(name):
         const_df = pd.DataFrame()
     else:
         main_df = full_df.iloc[[0]]
-        const_df = full_df.iloc[1:]
+        const_df = full_df.iloc[1:]           # ← Constituents
         if not const_df.empty:
-            const_df = const_df.iloc[:, 1:]
+            const_df = const_df.iloc[:, 1:]   # Remove first column
 
     rem_html  = rem_df.to_html(index=False, escape=False)
     main_html = main_df.to_html(index=False, escape=False)
     cons_html = const_df.to_html(index=False, escape=False)
 
-    # Metrics for matrix tables
+    # ==================== MATRIX USES const_df NOW ====================
     metric_cols = [
-        "pChange", "totalTradedValue", "nearWKH", "nearWKL",
-        "perChange365d"
+        "change", "totalTradedValue", "nearWKH", "nearWKL",
+        "perChange365d", "perChange30d", "listingDate"
     ]
 
     metric_tables = ""
 
     for col in metric_cols:
-        if col not in full_df.columns:
+        if col not in const_df.columns:   # NOW checks in constituents
             continue
 
-        df_small = full_df[["symbol", col]].copy()
+        df_small = const_df[["symbol", col]].copy()
         tbl = df_small.to_html(index=False)
 
         metric_tables += f"""
@@ -76,7 +76,7 @@ h2, h3 {{
     font-weight: 600;
 }}
 
-/* ===================== MATRIX TABLES ONLY ===================== */
+/* ===================== MATRIX ONLY ===================== */
 
 .grid {{
     display: grid;
@@ -127,7 +127,6 @@ h2, h3 {{
     padding: 4px;
     border: 1px solid #ccc;
 }}
-
 </style>
 
 </head>
