@@ -47,7 +47,6 @@ def build_index_live_html(name=""):
 
         df_const = const_df.copy()
         df_const[col] = pd.to_numeric(df_const[col], errors="ignore")
-        # Sort descending for better visibility
         df_const = df_const.sort_values(col, ascending=False)
         df_html = df_to_html_color(df_const[['symbol', col]])
 
@@ -112,7 +111,7 @@ th {{
     padding: 8px;
     box-shadow: 0px 1px 4px rgba(0,0,0,0.15);
     border: 1px solid #ddd;
-    overflow: auto;
+    overflow: auto; /* vertical scroll if too long */
 }}
 
 .st-title {{
@@ -127,8 +126,8 @@ th {{
 }}
 
 .st-body {{
-    max-height: 300px;  /* Scrollable if large */
-    overflow: auto;
+    max-height: 250px;  /* vertical scroll for long metric tables */
+    overflow-y: auto;
     font-size: 12px;
 }}
 
@@ -139,7 +138,14 @@ th {{
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     border: 1px solid #ddd;
     margin-bottom: 15px;
-    overflow-x: auto;
+    overflow-x: auto; /* horizontal scroll only if table wider than container */
+}}
+
+.grid {{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 12px;
 }}
 </style>
 </head>
