@@ -3,19 +3,25 @@ import pandas as pd
 
 def build_preopen_html(key="NIFTY"):
     # Fetch pre-open data
-    p = nsefetch("https://www.nseindia.com/api/market-data-pre-open?key=" + key)
-    
+    p = nsefetch(f"https://www.nseindia.com/api/market-data-pre-open?key={key}")
     data_df = df_from_data(p.pop("data"))
     rem_df  = df_from_data([p])
     
     main_df = data_df.iloc[[0]] if not data_df.empty else pd.DataFrame()
     const_df = data_df.iloc[1:] if len(data_df) > 1 else pd.DataFrame()
     
+    # ================= REMOVE ALL *_x COLUMNS =================
+    def remove_x_columns(df):
+        return df[[c for c in df.columns if not c.endswith("_x")]]
+    
+    main_df = remove_x_columns(main_df)
+    const_df = remove_x_columns(const_df)
+    rem_df = remove_x_columns(rem_df)
+
     # ================= HELPER FUNCTION =================
     def df_to_html_color(df, metric_col=None):
         df_html = df.copy()
-        top3_up = []
-        top3_down = []
+        top3_up, top3_down = [], []
         if metric_col and metric_col in df_html.columns and pd.api.types.is_numeric_dtype(df_html[metric_col]):
             col_numeric = df_html[metric_col].dropna()
             top3_up = col_numeric.nlargest(3).index.tolist()
@@ -25,13 +31,13 @@ def build_preopen_html(key="NIFTY"):
             for col in df_html.columns:
                 val = row[col]
                 style = ""
-                if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
+                if isinstance(val, (int, float)):
                     val_fmt = f"{val:.2f}"
                     if val > 0:
                         style = "numeric-positive"
                     elif val < 0:
                         style = "numeric-negative"
-                    if metric_col and col == metric_col:
+                    if metric_col == col:
                         if idx in top3_up:
                             style += " top-up"
                         elif idx in top3_down:
@@ -41,10 +47,12 @@ def build_preopen_html(key="NIFTY"):
                     df_html.at[idx, col] = str(val)
         return df_html.to_html(index=False, escape=False, classes="compact-table")
 
-    # ================= MERGE INFO + MAIN INTO MINI-CARDS =================
+    # ================= MINI-CARDS =================
     def merge_info_main_cards(rem_df, main_df):
         combined = pd.concat([rem_df, main_df], axis=1)
         combined = combined.loc[:, ~combined.columns.duplicated()]
+        # Remove *_x columns
+        combined = combined[[c for c in combined.columns if not c.endswith("_x")]]
         cards_html = '<div class="mini-card-container">'
         for col in combined.columns:
             val = combined.at[0, col] if not combined.empty else ""
@@ -59,11 +67,11 @@ def build_preopen_html(key="NIFTY"):
 
     info_cards_html = merge_info_main_cards(rem_df, main_df)
 
-    # Constituents table
+    # ================= Constituents table =================
     cons_html = df_to_html_color(const_df) if not const_df.empty else "<i>No pre-open constituents</i>"
 
-    # Metric tables (for numeric columns)
-    metric_cols = [c for c in const_df.columns if pd.api.types.is_numeric_dtype(const_df[c])] if not const_df.empty else []
+    # ================= Metric tables =================
+    metric_cols = [c for c in const_df.columns if pd.api.types.is_numeric_dtype(const_df[c]) and not c.endswith("_x")] if not const_df.empty else []
     metric_tables = ""
     for col in metric_cols:
         df_const = const_df.copy()
@@ -84,79 +92,21 @@ def build_preopen_html(key="NIFTY"):
 <head>
 <meta charset="UTF-8">
 <style>
-body {{
-    font-family: Arial;
-    margin: 12px;
-    background: #f5f5f5;
-    color: #222;
-    font-size: 14px;
-}}
-h2, h3 {{
-    margin: 12px 0 6px 0;
-    font-weight: 600;
-}}
-table {{
-    border-collapse: collapse;
-    width: 100%;
-    table-layout: auto;
-}}
-th, td {{
-    border: 1px solid #bbb;
-    padding: 5px 8px;
-    text-align: left;
-    font-size: 13px;
-}}
-th {{
-    background: #333;
-    color: white;
-    font-weight: 600;
-}}
+body {{ font-family: Arial; margin: 12px; background: #f5f5f5; color: #222; font-size: 14px; }}
+h2, h3 {{ margin: 12px 0 6px 0; font-weight: 600; }}
+table {{ border-collapse: collapse; width: 100%; table-layout: auto; }}
+th, td {{ border: 1px solid #bbb; padding: 5px 8px; text-align: left; font-size: 13px; }}
+th {{ background: #333; color: white; font-weight: 600; }}
 .compact-table td.numeric-positive {{ color: green; font-weight: bold; }}
 .compact-table td.numeric-negative {{ color: red; font-weight: bold; }}
 .compact-table td.top-up {{ background: #a8f0a5; }}
 .compact-table td.top-down {{ background: #f0a8a8; }}
-.small-table {{
-    background: white;
-    border-radius: 6px;
-    padding: 8px;
-    box-shadow: 0px 1px 4px rgba(0,0,0,0.15);
-    border: 1px solid #ddd;
-    overflow-y: auto;
-}}
-.st-title {{
-    font-size: 14px;
-    text-align: center;
-    margin-bottom: 6px;
-    font-weight: bold;
-    background: #222;
-    color: white;
-    padding: 5px 0;
-    border-radius: 4px;
-}}
-.st-body {{
-    max-height: 300px;
-    overflow-y: auto;
-    font-size: 12px;
-}}
-.grid {{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    margin-top: 12px;
-}}
-.mini-card-container {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}}
-.mini-card {{
-    background: #fff;
-    padding: 8px 10px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    min-width: 120px;
-    font-size: 13px;
-}}
+.small-table {{ background: white; border-radius: 6px; padding: 8px; box-shadow: 0px 1px 4px rgba(0,0,0,0.15); border: 1px solid #ddd; overflow-y: auto; }}
+.st-title {{ font-size: 14px; text-align: center; margin-bottom: 6px; font-weight: bold; background: #222; color: white; padding: 5px 0; border-radius: 4px; }}
+.st-body {{ max-height: 300px; overflow-y: auto; font-size: 12px; }}
+.grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 12px; }}
+.mini-card-container {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+.mini-card {{ background: #fff; padding: 8px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); min-width: 120px; font-size: 13px; }}
 .card-key {{ font-weight: bold; color: #333; margin-bottom: 2px; }}
 .card-val {{ color: #222; }}
 </style>
