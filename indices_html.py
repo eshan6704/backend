@@ -5,7 +5,7 @@ import html
 import html
 import pandas as pd
 
-def build_indices_html_nojs():
+def build_indices_html():
     """
     Generate HTML:
       - main table
