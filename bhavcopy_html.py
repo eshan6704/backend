@@ -1,7 +1,7 @@
 import datetime
 from nsepython import *
 
-def fetch_bhavcopy_html(date_str):
+def build_bhavcopy_html(date_str):
     """
     Use existing nse_bhavcopy function to fetch Bhavcopy and return HTML directly.
     """
