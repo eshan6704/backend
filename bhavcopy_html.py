@@ -39,6 +39,7 @@ def build_bhavcopy_html(date_str):
 
     try:
         df = nse_bhavcopy(date_str)
+        print(df)
 
         # Rename columns
         df = df.rename(columns={
