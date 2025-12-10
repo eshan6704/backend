@@ -74,7 +74,7 @@ def fetch_data(mode, req_type, name, date_str):
         elif req_type == "nse_future":
             return wrap(nse_future(name))
         elif req_type == "nse_bhav":
-            return wrap(nse_bhav(date_str))  # no default
+            return wrap(nse_bhavcopy(date_str))  # no default
         elif req_type == "nse_highlow":
             return wrap(nse_highlow())
         else:
