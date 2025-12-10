@@ -17,7 +17,6 @@ def build_bhavcopy_html(date_str):
     try:
         df = nse_bhavcopy(date_str)   # <-- your custom loader
         df.columns = df.columns.str.strip()
-        
     except:
         return f"<h3>No Bhavcopy found for {date_str}.</h3>"
 
@@ -52,17 +51,21 @@ def build_bhavcopy_html(date_str):
                 .str.strip()
             )
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-            
-    df=df[df["TURNOVER_LACS"]>1000]
+
     # -------------------------------------------------------
-    # 5) Add computed columns
+    # 5) Filter by turnover
+    # -------------------------------------------------------
+    df = df[df["TURNOVER_LACS"] > 1000]
+
+    # -------------------------------------------------------
+    # 6) Add computed columns
     # -------------------------------------------------------
     df["change"] = df["CLOSE_PRICE"] - df["PREV_CLOSE"]
     df["perchange"] = (df["change"] / df["PREV_CLOSE"].replace(0, 1)) * 100
     df["pergap"] = ((df["OPEN_PRICE"] - df["PREV_CLOSE"]) / df["PREV_CLOSE"].replace(0, 1)) * 100
 
     # -------------------------------------------------------
-    # 6) MAIN TABLE (vertical scroll)
+    # 7) MAIN TABLE (vertical scroll)
     # -------------------------------------------------------
     main_html = f"""
     <div class="main-table-container">
@@ -71,7 +74,7 @@ def build_bhavcopy_html(date_str):
     """
 
     # -------------------------------------------------------
-    # 7) GRID TABLE (SYMBOL vs metric)
+    # 8) GRID TABLE (SYMBOL vs metric)
     # -------------------------------------------------------
     metrics = ["perchange", "pergap", "TURNOVER_LACS", "NO_OF_TRADES", "DELIV_PER"]
     existing_metrics = [m for m in metrics if m in df.columns]
@@ -95,7 +98,7 @@ def build_bhavcopy_html(date_str):
     """
 
     # -------------------------------------------------------
-    # 8) CSS
+    # 9) CSS (improved header style)
     # -------------------------------------------------------
     css = """
     <style>
@@ -126,20 +129,27 @@ def build_bhavcopy_html(date_str):
             width: 100%;
         }
         th, td {
-            padding: 3px 6px;
+            padding: 4px 8px;
             border: 1px solid #ddd;
         }
         th {
-            background: #eee;
+            background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+            color: white;
+            font-weight: bold;
+            text-align: center;
             position: sticky;
             top: 0;
-            z-index: 2;
+            z-index: 3;
+            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4);
+        }
+        td {
+            text-align: right;
         }
     </style>
     """
 
     # -------------------------------------------------------
-    # 9) Final Output
+    # 10) Final Output
     # -------------------------------------------------------
     return (
         css +
