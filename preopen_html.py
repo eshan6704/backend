@@ -73,8 +73,10 @@ def build_preopen_html(key="NIFTY"):
     # ================= Constituents table =================
     cons_html = df_to_html_color(const_df) if not const_df.empty else "<i>No pre-open constituents</i>"
 
-    # ================= Metric tables =================
-    metric_cols = [c for c in const_df.columns if pd.api.types.is_numeric_dtype(const_df[c]) and not pattern_remove.match(c)] if not const_df.empty else []
+    # ================= Metric tables (restricted to selected columns) =================
+    metric_cols_allowed = ["pChange", "totalTurnover", "marketCap", "IEP", "totalTradedVolume", "perChange"]
+    metric_cols = [c for c in metric_cols_allowed if c in const_df.columns and pd.api.types.is_numeric_dtype(const_df[c])] if not const_df.empty else []
+
     metric_tables = ""
     for col in metric_cols:
         df_const = const_df.copy()
@@ -128,7 +130,7 @@ th {{ background: #333; color: white; font-weight: 600; }}
     {cons_html}
 </div>
 
-<h3>Metric Tables (if numeric)</h3>
+<h3>Metric Tables (selected numeric)</h3>
 <div class="grid">
     {metric_tables}
 </div>
