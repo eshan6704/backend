@@ -1,6 +1,5 @@
 from nsepython import *
 import pandas as pd
-import json
 
 def build_index_live_html(name=""):
     # Fetch live data
@@ -8,15 +7,20 @@ def build_index_live_html(name=""):
 
     full_df = p.get("data", pd.DataFrame())
     rem_df  = p.get("rem", pd.DataFrame())
-    const_df = p.get("con", pd.DataFrame())  # constituents
 
-    # Remove first column from constituents
-    if not const_df.empty:
-        const_df = const_df.iloc[:, 1:]
+    # Split main + constituents
+    if full_df.empty:
+        main_df = pd.DataFrame()
+        const_df = pd.DataFrame()
+    else:
+        main_df = full_df.iloc[[0]]                     # first row
+        const_df = full_df.iloc[1:]                    # remaining rows
+        if not const_df.empty:
+            const_df = const_df.iloc[:, 1:]            # remove first column
 
-    # Convert to HTML
+    # Convert to HTML tables
     rem_html   = rem_df.to_html(index=False, escape=False)
-    full_html  = full_df.to_html(index=False, escape=False)
+    main_html  = main_df.to_html(index=False, escape=False)
     const_html = const_df.to_html(index=False, escape=False)
 
     html = f"""
@@ -37,7 +41,7 @@ h2, h3 {{
 
 .table-container {{
     width: 100%;
-    overflow-x: auto;      /* Horizontal scroll */
+    overflow-x: auto;      /* Horizontal scroll for wide tables */
     border: 1px solid #ccc;
     background: white;
     padding: 10px;
@@ -53,7 +57,7 @@ th, td {{
     border:1px solid #bbb;
     padding:6px 8px;
     text-align:left;
-    white-space: nowrap;   /* No text wrap */
+    white-space: nowrap;   /* Prevent wrapping */
 }}
 
 th {{
@@ -72,12 +76,12 @@ th {{
 {rem_html}
 </div>
 
-<h3>Main Data (full)</h3>
+<h3>Main Data (first row)</h3>
 <div class="table-container">
-{full_html}
+{main_html}
 </div>
 
-<h3>Constituents</h3>
+<h3>Constituents (remaining rows)</h3>
 <div class="table-container">
 {const_html}
 </div>
