@@ -182,9 +182,9 @@ def index_total_returns(sym,sd,ed):
     p=json.loads(requests.post('https://niftyindices.com/Backpage.aspx/getTotalReturnIndexString', headers=niftyindices_headers, json=d).json()["d"])
     return pd.DataFrame.from_records(p)
 
-def get_bhavcopy(d): return pd.read_csv("https://archives.nseindia.com/products/content/sec_bhavdata_full_"+d.replace("-","")+".csv")
-def get_bulkdeals(): return pd.read_csv("https://archives.nseindia.com/content/equities/bulk.csv")
-def get_blockdeals(): return pd.read_csv("https://archives.nseindia.com/content/equities/block.csv")
+def nse_bhavcopy(d): return pd.read_csv("https://archives.nseindia.com/products/content/sec_bhavdata_full_"+d.replace("-","")+".csv")
+def nse_bulkdeals(): return pd.read_csv("https://archives.nseindia.com/content/equities/bulk.csv")
+def nse_blockdeals(): return pd.read_csv("https://archives.nseindia.com/content/equities/block.csv")
 
 def nse_preopen(key="NIFTY"):
     p=nsefetch("https://www.nseindia.com/api/market-data-pre-open?key="+key)
@@ -209,7 +209,7 @@ def nse_largedeals_historical(f,t,mode="bulk_deals"):
     p=nsefetch(f'https://www.nseindia.com/api/historical/{m}?from={f}&to={t}')
     return pd.DataFrame(p["data"])
 
-def stock_hist(f,t,symbol,series="ALL"):
+def nse_stock_hist(f,t,symbol,series="ALL"):
     url=f"https://www.nseindia.com/api/historical/securityArchives?from={f}&to={t}&symbol={symbol.upper()}&dataType=priceVolumeDeliverable&series={series}"
     return pd.DataFrame(nsefetch(url)['data'])
 
