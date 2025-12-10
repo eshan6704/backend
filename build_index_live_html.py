@@ -8,8 +8,7 @@ def build_index_live_html(name=""):
 
     full_df = p.get("data", pd.DataFrame())
     rem_df  = p.get("rem", pd.DataFrame())
-    print(full_df)
-    print(rem_df)
+
     # Convert DataFrames to JSON
     rem_json  = json.dumps(rem_df.to_dict(orient="records"), ensure_ascii=False)
     full_json = json.dumps(full_df.to_dict(orient="records"), ensure_ascii=False)
