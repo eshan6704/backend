@@ -1,5 +1,6 @@
 from nsepython import *
 import pandas as pd
+import re
 
 def build_preopen_html(key="NIFTY"):
     # Fetch pre-open data
@@ -10,13 +11,15 @@ def build_preopen_html(key="NIFTY"):
     main_df = data_df.iloc[[0]] if not data_df.empty else pd.DataFrame()
     const_df = data_df.iloc[1:] if len(data_df) > 1 else pd.DataFrame()
     
-    # ================= REMOVE ALL *_x COLUMNS =================
-    def remove_x_columns(df):
-        return df[[c for c in df.columns if not c.endswith("_x")]]
+    # ================= REMOVE *_x AND SPECIFIC PATTERNS =================
+    pattern_remove = re.compile(r"^(price_|buyQty_|sellQty_|iep_)\d+$")
     
-    main_df = remove_x_columns(main_df)
-    const_df = remove_x_columns(const_df)
-    rem_df = remove_x_columns(rem_df)
+    def remove_pattern_cols(df):
+        return df[[c for c in df.columns if not pattern_remove.match(c)]]
+    
+    main_df = remove_pattern_cols(main_df)
+    const_df = remove_pattern_cols(const_df)
+    rem_df = remove_pattern_cols(rem_df)
 
     # ================= HELPER FUNCTION =================
     def df_to_html_color(df, metric_col=None):
@@ -51,8 +54,8 @@ def build_preopen_html(key="NIFTY"):
     def merge_info_main_cards(rem_df, main_df):
         combined = pd.concat([rem_df, main_df], axis=1)
         combined = combined.loc[:, ~combined.columns.duplicated()]
-        # Remove *_x columns
-        combined = combined[[c for c in combined.columns if not c.endswith("_x")]]
+        # Remove pattern columns
+        combined = combined[[c for c in combined.columns if not pattern_remove.match(c)]]
         cards_html = '<div class="mini-card-container">'
         for col in combined.columns:
             val = combined.at[0, col] if not combined.empty else ""
@@ -71,7 +74,7 @@ def build_preopen_html(key="NIFTY"):
     cons_html = df_to_html_color(const_df) if not const_df.empty else "<i>No pre-open constituents</i>"
 
     # ================= Metric tables =================
-    metric_cols = [c for c in const_df.columns if pd.api.types.is_numeric_dtype(const_df[c]) and not c.endswith("_x")] if not const_df.empty else []
+    metric_cols = [c for c in const_df.columns if pd.api.types.is_numeric_dtype(const_df[c]) and not pattern_remove.match(c)] if not const_df.empty else []
     metric_tables = ""
     for col in metric_cols:
         df_const = const_df.copy()
