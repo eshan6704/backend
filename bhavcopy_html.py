@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 from nsepython import *
+
 def build_bhavcopy_html(date_str):
     # -------------------------------------------------------
     # 1) Validate Date
@@ -40,14 +41,31 @@ def build_bhavcopy_html(date_str):
     df = df.rename(columns=rename_map)
 
     # -------------------------------------------------------
-    # 4) Select required columns
+    # 4) Convert numeric columns properly
+    # -------------------------------------------------------
+    numeric_cols = [
+        "preclose","open","high","low","close",
+        "volume","turnover","order","del","perdel"
+    ]
+
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(",", "", regex=False)
+                .str.strip()
+            )
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    # -------------------------------------------------------
+    # 5) Select required columns
     # -------------------------------------------------------
     required = [
         "symbol","series","preclose","open","high",
         "low","close","volume","turnover","order","perdel"
     ]
 
-    # ensure missing ones are created
     for col in required:
         if col not in df.columns:
             df[col] = 0
@@ -55,19 +73,19 @@ def build_bhavcopy_html(date_str):
     df = df[required]
 
     # -------------------------------------------------------
-    # 5) Add new computed columns
+    # 6) Add computed columns
     # -------------------------------------------------------
     df["change"] = df["close"] - df["preclose"]
     df["perchange"] = (df["change"] / df["preclose"].replace(0, 1)) * 100
     df["pergap"] = ((df["open"] - df["preclose"]) / df["preclose"].replace(0, 1)) * 100
 
     # -------------------------------------------------------
-    # 6) Build MAIN TABLE
+    # 7) MAIN TABLE
     # -------------------------------------------------------
     main_html = df.to_html(index=False, escape=False)
 
     # -------------------------------------------------------
-    # 7) Build GRID TABLES (5 columns)
+    # 8) GRID TABLE (5 columns)
     # -------------------------------------------------------
     df_sorted = df.sort_values("perchange", ascending=False)
 
@@ -75,7 +93,6 @@ def build_bhavcopy_html(date_str):
     chunk_size = (n + 4) // 5
     chunks = [df_sorted.iloc[i:i+chunk_size] for i in range(0, n, chunk_size)]
 
-    # each chunk to HTML
     col_html = []
     for ch in chunks:
         col_html.append(
@@ -93,7 +110,7 @@ def build_bhavcopy_html(date_str):
     """
 
     # -------------------------------------------------------
-    # 8) CSS for layout
+    # 9) CSS
     # -------------------------------------------------------
     css = """
     <style>
@@ -128,6 +145,12 @@ def build_bhavcopy_html(date_str):
     """
 
     # -------------------------------------------------------
-    # 9) Final Combined Output
+    # 10) Final Output
     # -------------------------------------------------------
-    return css + "<h2>Main Bhavcopy Table</h2>" + main_html + "<h2>5-Column Grid View</h2>" + grid_html
+    return (
+        css +
+        "<h2>Main Bhavcopy Table</h2>" +
+        main_html +
+        "<h2>5-Column Grid View</h2>" +
+        grid_html
+    )
