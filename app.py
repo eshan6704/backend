@@ -1,7 +1,8 @@
 import gradio as gr
 from stock import *
 from indices_html import *
-from build_index_live_html import *
+from index_live_html import *
+from preopen_html import *
 from eq_html import *
 import pandas as pd
 
@@ -67,7 +68,7 @@ def fetch_data(mode, req_type, name, date_str):
         elif req_type == "nse_open":
             return build_index_live_html(name)
         elif req_type == "nse_preopen":
-            return wrap(nse_preopen(name))
+            return build_preopen_html()
         elif req_type == "nse_fno":
             return wrap(nse_fno(name))
         elif req_type == "nse_future":
