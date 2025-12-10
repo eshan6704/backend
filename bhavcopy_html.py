@@ -35,7 +35,6 @@ def build_bhavcopy_html(date_str):
         "NO_OF_TRADES",
         "DELIV_QTY",
         "DELIV_PER"
-"
     ]
 
     for col in numeric_cols:
