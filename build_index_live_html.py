@@ -1,7 +1,7 @@
 from nsepython import *
 import pandas as pd
 
-def build_index_live_html(name=""):
+def build_index_live_html(name):
     p = nse_index_live(name)
 
     full_df = p.get("data", pd.DataFrame())
@@ -22,7 +22,7 @@ def build_index_live_html(name=""):
 
     # Metrics for matrix tables
     metric_cols = [
-        "pchange", "totalTradedValue", "nearWKH", "nearWKL",
+        "pChange", "totalTradedValue", "nearWKH", "nearWKL",
         "perChange365d"
     ]
 
