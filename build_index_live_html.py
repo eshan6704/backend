@@ -3,7 +3,7 @@ def build_index_live_html(name):
 
     full_df = p["data"]
     rem_df  = p["rem"]
-
+    print(full_df)
     main_df = full_df.iloc[[0]] if len(full_df) else pd.DataFrame()
     cons_df = full_df.iloc[1:] if len(full_df) > 1 else pd.DataFrame()
 
