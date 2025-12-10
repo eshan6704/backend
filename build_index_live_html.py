@@ -22,7 +22,6 @@ def build_index_live_html(name=""):
     # ================= HELPER FUNCTION: COLOR-CODE AND FORMAT NUMERIC =================
     def df_to_html_color(df, metric_col=None):
         df_html = df.copy()
-        # Identify top 3 gainers and losers
         top3_up = []
         top3_down = []
         if metric_col and metric_col in df_html.columns and pd.api.types.is_numeric_dtype(df_html[metric_col]):
@@ -40,9 +39,6 @@ def build_index_live_html(name=""):
                         style = "numeric-positive"
                     elif val < 0:
                         style = "numeric-negative"
-                    else:
-                        style = ""
-                    # Highlight top 3 gainers / losers
                     if metric_col and col == metric_col:
                         if idx in top3_up:
                             style += " top-up"
@@ -69,7 +65,6 @@ def build_index_live_html(name=""):
             continue
 
         df_const = const_df.copy()
-        # Convert to numeric for formatting, ignore errors for non-numeric
         df_const[col] = pd.to_numeric(df_const[col], errors="ignore")
         df_const = df_const.sort_values(col, ascending=False)
         df_html = df_to_html_color(df_const[['symbol', col]], metric_col=col)
@@ -138,6 +133,13 @@ th {{
     background: #f0a8a8; /* light red */
 }}
 
+/* ==================== Fixed row height for Constituent Table ==================== */
+#constituents-table tr, #constituents-table td {{
+    max-height: 25px;
+    height: 25px;
+    overflow: hidden;
+}}
+
 .small-table {{
     background: white;
     border-radius: 6px;
@@ -198,7 +200,9 @@ th {{
 
 <div class="compact-section">
     <h3>Constituents</h3>
-    {cons_html}
+    <div id="constituents-table">
+        {cons_html}
+    </div>
 </div>
 
 <h3>Metric Tables (All Symbols)</h3>
