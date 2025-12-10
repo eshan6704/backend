@@ -19,15 +19,38 @@ def build_index_live_html(name=""):
                 const_df['pChange'] = pd.to_numeric(const_df['pChange'], errors='coerce')
                 const_df = const_df.sort_values('pChange', ascending=False)
 
-    # ================= HELPER FUNCTION: COLOR-CODE NUMERIC =================
-    def df_to_html_color(df):
+    # ================= HELPER FUNCTION: COLOR-CODE AND FORMAT NUMERIC =================
+    def df_to_html_color(df, metric_col=None):
         df_html = df.copy()
-        for col in df_html.columns:
-            if pd.api.types.is_numeric_dtype(df_html[col]):
-                df_html[col] = df_html[col].apply(
-                    lambda x: f'<span class="numeric-positive">{x}</span>' if x > 0 else
-                              f'<span class="numeric-negative">{x}</span>' if x < 0 else str(x)
-                )
+        # Identify top 3 gainers and losers
+        top3_up = []
+        top3_down = []
+        if metric_col and metric_col in df_html.columns and pd.api.types.is_numeric_dtype(df_html[metric_col]):
+            col_numeric = df_html[metric_col].dropna()
+            top3_up = col_numeric.nlargest(3).index.tolist()
+            top3_down = col_numeric.nsmallest(3).index.tolist()
+
+        for idx, row in df_html.iterrows():
+            for col in df_html.columns:
+                val = row[col]
+                style = ""
+                if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
+                    val_fmt = f"{val:.2f}"
+                    if val > 0:
+                        style = "numeric-positive"
+                    elif val < 0:
+                        style = "numeric-negative"
+                    else:
+                        style = ""
+                    # Highlight top 3 gainers / losers
+                    if metric_col and col == metric_col:
+                        if idx in top3_up:
+                            style += " top-up"
+                        elif idx in top3_down:
+                            style += " top-down"
+                    df_html.at[idx, col] = f'<span class="{style.strip()}">{val_fmt}</span>'
+                else:
+                    df_html.at[idx, col] = str(val)
         return df_html.to_html(index=False, escape=False, classes="compact-table")
 
     rem_html  = df_to_html_color(rem_df)
@@ -46,9 +69,10 @@ def build_index_live_html(name=""):
             continue
 
         df_const = const_df.copy()
+        # Convert to numeric for formatting, ignore errors for non-numeric
         df_const[col] = pd.to_numeric(df_const[col], errors="ignore")
         df_const = df_const.sort_values(col, ascending=False)
-        df_html = df_to_html_color(df_const[['symbol', col]])
+        df_html = df_to_html_color(df_const[['symbol', col]], metric_col=col)
 
         metric_tables += f"""
         <div class="small-table">
@@ -81,6 +105,7 @@ h2, h3 {{
 table {{
     border-collapse: collapse;
     width: 100%;
+    table-layout: auto;
 }}
 
 th, td {{
@@ -105,13 +130,21 @@ th {{
     font-weight: bold;
 }}
 
+/* Highlight top 3 gainers / losers */
+.compact-table td.top-up {{
+    background: #a8f0a5; /* light green */
+}}
+.compact-table td.top-down {{
+    background: #f0a8a8; /* light red */
+}}
+
 .small-table {{
     background: white;
     border-radius: 6px;
     padding: 8px;
     box-shadow: 0px 1px 4px rgba(0,0,0,0.15);
     border: 1px solid #ddd;
-    overflow: auto; /* vertical scroll if too long */
+    overflow-y: auto;
 }}
 
 .st-title {{
@@ -126,7 +159,7 @@ th {{
 }}
 
 .st-body {{
-    max-height: 250px;  /* vertical scroll for long metric tables */
+    max-height: 300px;  /* vertical scroll for metric tables */
     overflow-y: auto;
     font-size: 12px;
 }}
@@ -138,7 +171,7 @@ th {{
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     border: 1px solid #ddd;
     margin-bottom: 15px;
-    overflow-x: auto; /* horizontal scroll only if table wider than container */
+    overflow-x: visible;
 }}
 
 .grid {{
